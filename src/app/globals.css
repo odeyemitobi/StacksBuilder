@@ -1,0 +1,528 @@
+@import "tailwindcss";
+
+
+/* Tailwind v4 Configuration */
+@theme {
+  /* Custom Colors */
+  --color-stacks-50: #f0f4ff;
+  --color-stacks-100: #e0e7ff;
+  --color-stacks-200: #c7d2fe;
+  --color-stacks-300: #a5b4fc;
+  --color-stacks-400: #818cf8;
+  --color-stacks-500: #6366f1;
+  --color-stacks-600: #5145cd;
+  --color-stacks-700: #4338ca;
+  --color-stacks-800: #3730a3;
+  --color-stacks-900: #312e81;
+
+  --color-bitcoin-50: #fff7ed;
+  --color-bitcoin-100: #ffedd5;
+  --color-bitcoin-200: #fed7aa;
+  --color-bitcoin-300: #fdba74;
+  --color-bitcoin-400: #fb923c;
+  --color-bitcoin-500: #f97316;
+  --color-bitcoin-600: #ea580c;
+  --color-bitcoin-700: #c2410c;
+  --color-bitcoin-800: #9a3412;
+  --color-bitcoin-900: #7c2d12;
+
+  /* Theme Colors for Design System - Next.js inspired */
+  --color-background: 255 255 255; /* pure white */
+  --color-foreground: 0 0 0; /* pure black */
+  --color-card: 255 255 255; /* pure white */
+  --color-card-foreground: 0 0 0; /* pure black */
+  --color-border: 229 229 229; /* very light gray */
+  --color-input: 245 245 245; /* subtle gray */
+  --color-primary: 0 0 0; /* black for primary actions */
+  --color-primary-foreground: 255 255 255; /* white text */
+  --color-secondary: 245 245 245; /* light gray */
+  --color-secondary-foreground: 0 0 0; /* black text */
+  --color-muted: 250 250 250; /* very light gray */
+  --color-muted-foreground: 115 115 115; /* medium gray */
+  --color-accent: 245 245 245; /* light gray */
+  --color-accent-foreground: 0 0 0; /* black text */
+  --color-destructive: 220 38 38; /* red-600 */
+  --color-destructive-foreground: 255 255 255; /* white */
+
+  /* Custom Fonts */
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --font-family-mono: 'JetBrains Mono', Menlo, Monaco, monospace;
+
+  /* Custom Animations */
+  --animate-fade-in: fadeIn 0.5s ease-in-out;
+  --animate-slide-up: slideUp 0.3s ease-out;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Dark mode overrides using class-based theming - True dark mode */
+.dark {
+  --color-background: 0 0 0; /* pure black */
+  --color-foreground: 255 255 255; /* pure white */
+  --color-card: 8 8 8; /* very dark gray */
+  --color-card-foreground: 255 255 255; /* pure white */
+  --color-border: 30 30 30; /* dark gray border */
+  --color-input: 15 15 15; /* dark input background */
+  --color-primary: 255 255 255; /* white for primary actions in dark mode */
+  --color-primary-foreground: 0 0 0; /* black text */
+  --color-secondary: 20 20 20; /* dark gray */
+  --color-secondary-foreground: 255 255 255; /* white text */
+  --color-muted: 12 12 12; /* very dark gray */
+  --color-muted-foreground: 180 180 180; /* light gray */
+  --color-accent: 18 18 18; /* dark gray */
+  --color-accent-foreground: 255 255 255; /* white text */
+  --color-destructive: 239 68 68; /* red-500 */
+  --color-destructive-foreground: 255 255 255; /* white */
+}
+
+/* Dark mode specific component overrides */
+.dark .badge-primary {
+  background-color: rgb(var(--color-stacks-800));
+  color: rgb(var(--color-stacks-100));
+}
+
+@layer base {
+  * {
+    border-color: rgb(var(--color-border));
+  }
+
+  html {
+    font-family: var(--font-family-sans);
+  }
+
+  body {
+    background-color: rgb(var(--color-background));
+    color: rgb(var(--color-foreground));
+    @apply antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: rgb(var(--color-muted));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--color-muted-foreground) / 0.3);
+    @apply rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--color-muted-foreground) / 0.5);
+  }
+}
+
+@layer components {
+  /* Button variants - Next.js inspired */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    border: 1px solid transparent;
+  }
+
+  .btn-primary {
+    background-color: rgb(var(--color-primary));
+    color: rgb(var(--color-primary-foreground));
+    border-color: rgb(var(--color-primary));
+  }
+
+  .btn-primary:hover {
+    background-color: rgb(var(--color-primary) / 0.9);
+  }
+
+  .btn-secondary {
+    background-color: rgb(var(--color-secondary));
+    color: rgb(var(--color-secondary-foreground));
+    border-color: rgb(var(--color-border));
+  }
+
+  .btn-secondary:hover {
+    background-color: rgb(var(--color-accent));
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: transparent;
+    color: rgb(var(--color-foreground));
+    border: 1px solid rgb(var(--color-border));
+  }
+
+  .btn-outline:hover {
+    background-color: rgb(var(--color-accent));
+    border-color: rgb(var(--color-border));
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: transparent;
+    color: rgb(var(--color-muted-foreground));
+    border: 1px solid transparent;
+  }
+
+  .btn-ghost:hover {
+    background-color: rgb(var(--color-accent));
+    color: rgb(var(--color-foreground));
+  }
+
+  .btn-danger {
+    background-color: rgb(var(--color-destructive));
+    color: rgb(var(--color-destructive-foreground));
+    border: 1px solid rgb(var(--color-destructive));
+  }
+
+  .btn-danger:hover {
+    background-color: rgb(var(--color-destructive) / 0.9);
+  }
+
+  /* Card components - Next.js inspired */
+  .card {
+    background-color: rgb(var(--color-card));
+    color: rgb(var(--color-card-foreground));
+    border: 1px solid rgb(var(--color-border));
+    @apply rounded-lg shadow-sm p-6;
+  }
+
+  .card-hover {
+    @apply rounded-lg shadow-sm p-6 transition-all duration-200;
+    background-color: rgb(var(--color-card));
+    color: rgb(var(--color-card-foreground));
+    border: 1px solid rgb(var(--color-border));
+  }
+
+  .card-hover:hover {
+    border-color: rgb(var(--color-muted-foreground) / 0.3);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+
+  /* Input components - Next.js inspired */
+  .input {
+    background-color: rgb(var(--color-input));
+    color: rgb(var(--color-foreground));
+    border: 1px solid rgb(var(--color-border));
+    @apply block w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors duration-200;
+  }
+
+  .input::placeholder {
+    color: rgb(var(--color-muted-foreground));
+  }
+
+  .input:focus {
+    --tw-ring-color: rgb(var(--color-primary) / 0.2);
+    border-color: rgb(var(--color-primary));
+  }
+
+  .input-error {
+    @apply block w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors duration-200;
+    background-color: rgb(var(--color-input));
+    color: rgb(var(--color-foreground));
+    border: 1px solid rgb(var(--color-destructive));
+  }
+
+  .input-error::placeholder {
+    color: rgb(var(--color-muted-foreground));
+  }
+
+  .input-error:focus {
+    --tw-ring-color: rgb(var(--color-destructive) / 0.2);
+  }
+
+  .textarea {
+    @apply block w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors duration-200 resize-none;
+    background-color: rgb(var(--color-input));
+    color: rgb(var(--color-foreground));
+    border: 1px solid rgb(var(--color-border));
+  }
+
+  .textarea::placeholder {
+    color: rgb(var(--color-muted-foreground));
+  }
+
+  .textarea:focus {
+    --tw-ring-color: rgb(var(--color-primary) / 0.2);
+    border-color: rgb(var(--color-primary));
+  }
+
+  /* Badge components */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    background-color: rgb(var(--color-stacks-100));
+    color: rgb(var(--color-stacks-800));
+  }
+
+  .badge-secondary {
+    background-color: rgb(var(--color-secondary));
+    color: rgb(var(--color-secondary-foreground));
+  }
+
+  .badge-success {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100;
+  }
+
+  .badge-danger {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100;
+  }
+
+  /* Loading states */
+  .loading-spinner {
+    @apply animate-spin rounded-full border-2;
+    border-color: rgb(var(--color-muted));
+    border-top-color: rgb(var(--color-primary));
+  }
+
+  .loading-pulse {
+    @apply animate-pulse rounded;
+    background-color: rgb(var(--color-muted));
+  }
+
+  /* Gradient backgrounds */
+  .gradient-stacks {
+    background: linear-gradient(135deg, rgb(var(--color-stacks-500)) 0%, #8b5cf6 100%);
+  }
+
+  .gradient-bitcoin {
+    background: linear-gradient(135deg, rgb(var(--color-bitcoin-500)) 0%, rgb(var(--color-bitcoin-600)) 100%);
+  }
+
+  /* Text gradients */
+  .text-gradient-stacks {
+    background: linear-gradient(to right, rgb(var(--color-stacks-600)), #8b5cf6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .text-gradient-bitcoin {
+    background: linear-gradient(to right, rgb(var(--color-bitcoin-500)), rgb(var(--color-bitcoin-600)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  /* Custom utilities */
+  .text-balance {
+    text-wrap: balance;
+    /* Fallback for older browsers */
+    text-align: center;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+
+  /* Focus utilities */
+  .focus-ring:focus {
+    outline: none;
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+    --tw-ring-color: rgb(var(--color-primary) / 0.5);
+    --tw-ring-offset-width: 2px;
+  }
+
+  .focus-ring-inset:focus {
+    outline: none;
+    --tw-ring-inset: inset;
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+    --tw-ring-color: rgb(var(--color-primary) / 0.5);
+  }
+
+  /* Theme utilities */
+  .bg-background {
+    background-color: rgb(var(--color-background));
+  }
+
+  .text-foreground {
+    color: rgb(var(--color-foreground));
+  }
+
+  .border-border {
+    border-color: rgb(var(--color-border));
+  }
+
+  .bg-muted {
+    background-color: rgb(var(--color-muted));
+  }
+
+  .text-muted-foreground {
+    color: rgb(var(--color-muted-foreground));
+  }
+
+  .bg-accent {
+    background-color: rgb(var(--color-accent));
+  }
+
+  .text-accent-foreground {
+    color: rgb(var(--color-accent-foreground));
+  }
+
+  .bg-card {
+    background-color: rgb(var(--color-card));
+  }
+
+  .text-card-foreground {
+    color: rgb(var(--color-card-foreground));
+  }
+
+  .text-destructive {
+    color: rgb(var(--color-destructive));
+  }
+
+  .bg-destructive {
+    background-color: rgb(var(--color-destructive));
+  }
+
+  .text-destructive-foreground {
+    color: rgb(var(--color-destructive-foreground));
+  }
+
+  .bg-primary {
+    background-color: rgb(var(--color-primary));
+  }
+
+  .text-primary {
+    color: rgb(var(--color-primary));
+  }
+
+  .text-primary-foreground {
+    color: rgb(var(--color-primary-foreground));
+  }
+
+  .bg-secondary {
+    background-color: rgb(var(--color-secondary));
+  }
+
+  .text-secondary-foreground {
+    color: rgb(var(--color-secondary-foreground));
+  }
+
+  /* Stacks color utilities */
+  .bg-stacks-50 { background-color: rgb(var(--color-stacks-50)); }
+  .bg-stacks-100 { background-color: rgb(var(--color-stacks-100)); }
+  .bg-stacks-200 { background-color: rgb(var(--color-stacks-200)); }
+  .bg-stacks-300 { background-color: rgb(var(--color-stacks-300)); }
+  .bg-stacks-400 { background-color: rgb(var(--color-stacks-400)); }
+  .bg-stacks-500 { background-color: rgb(var(--color-stacks-500)); }
+  .bg-stacks-600 { background-color: rgb(var(--color-stacks-600)); }
+  .bg-stacks-700 { background-color: rgb(var(--color-stacks-700)); }
+  .bg-stacks-800 { background-color: rgb(var(--color-stacks-800)); }
+  .bg-stacks-900 { background-color: rgb(var(--color-stacks-900)); }
+
+  .text-stacks-50 { color: rgb(var(--color-stacks-50)); }
+  .text-stacks-100 { color: rgb(var(--color-stacks-100)); }
+  .text-stacks-200 { color: rgb(var(--color-stacks-200)); }
+  .text-stacks-300 { color: rgb(var(--color-stacks-300)); }
+  .text-stacks-400 { color: rgb(var(--color-stacks-400)); }
+  .text-stacks-500 { color: rgb(var(--color-stacks-500)); }
+  .text-stacks-600 { color: rgb(var(--color-stacks-600)); }
+  .text-stacks-700 { color: rgb(var(--color-stacks-700)); }
+  .text-stacks-800 { color: rgb(var(--color-stacks-800)); }
+  .text-stacks-900 { color: rgb(var(--color-stacks-900)); }
+
+  .from-stacks-50 { --tw-gradient-from: rgb(var(--color-stacks-50)); }
+  .from-stacks-100 { --tw-gradient-from: rgb(var(--color-stacks-100)); }
+  .from-stacks-200 { --tw-gradient-from: rgb(var(--color-stacks-200)); }
+  .from-stacks-300 { --tw-gradient-from: rgb(var(--color-stacks-300)); }
+  .from-stacks-400 { --tw-gradient-from: rgb(var(--color-stacks-400)); }
+  .from-stacks-500 { --tw-gradient-from: rgb(var(--color-stacks-500)); }
+  .from-stacks-600 { --tw-gradient-from: rgb(var(--color-stacks-600)); }
+  .from-stacks-700 { --tw-gradient-from: rgb(var(--color-stacks-700)); }
+  .from-stacks-800 { --tw-gradient-from: rgb(var(--color-stacks-800)); }
+  .from-stacks-900 { --tw-gradient-from: rgb(var(--color-stacks-900)); }
+
+  .to-stacks-50 { --tw-gradient-to: rgb(var(--color-stacks-50)); }
+  .to-stacks-100 { --tw-gradient-to: rgb(var(--color-stacks-100)); }
+  .to-stacks-200 { --tw-gradient-to: rgb(var(--color-stacks-200)); }
+  .to-stacks-300 { --tw-gradient-to: rgb(var(--color-stacks-300)); }
+  .to-stacks-400 { --tw-gradient-to: rgb(var(--color-stacks-400)); }
+  .to-stacks-500 { --tw-gradient-to: rgb(var(--color-stacks-500)); }
+  .to-stacks-600 { --tw-gradient-to: rgb(var(--color-stacks-600)); }
+  .to-stacks-700 { --tw-gradient-to: rgb(var(--color-stacks-700)); }
+  .to-stacks-800 { --tw-gradient-to: rgb(var(--color-stacks-800)); }
+  .to-stacks-900 { --tw-gradient-to: rgb(var(--color-stacks-900)); }
+
+  /* Bitcoin color utilities */
+  .bg-bitcoin-50 { background-color: rgb(var(--color-bitcoin-50)); }
+  .bg-bitcoin-100 { background-color: rgb(var(--color-bitcoin-100)); }
+  .bg-bitcoin-200 { background-color: rgb(var(--color-bitcoin-200)); }
+  .bg-bitcoin-300 { background-color: rgb(var(--color-bitcoin-300)); }
+  .bg-bitcoin-400 { background-color: rgb(var(--color-bitcoin-400)); }
+  .bg-bitcoin-500 { background-color: rgb(var(--color-bitcoin-500)); }
+  .bg-bitcoin-600 { background-color: rgb(var(--color-bitcoin-600)); }
+  .bg-bitcoin-700 { background-color: rgb(var(--color-bitcoin-700)); }
+  .bg-bitcoin-800 { background-color: rgb(var(--color-bitcoin-800)); }
+  .bg-bitcoin-900 { background-color: rgb(var(--color-bitcoin-900)); }
+
+  .to-bitcoin-50 { --tw-gradient-to: rgb(var(--color-bitcoin-50)); }
+  .to-bitcoin-100 { --tw-gradient-to: rgb(var(--color-bitcoin-100)); }
+  .to-bitcoin-200 { --tw-gradient-to: rgb(var(--color-bitcoin-200)); }
+  .to-bitcoin-300 { --tw-gradient-to: rgb(var(--color-bitcoin-300)); }
+  .to-bitcoin-400 { --tw-gradient-to: rgb(var(--color-bitcoin-400)); }
+  .to-bitcoin-500 { --tw-gradient-to: rgb(var(--color-bitcoin-500)); }
+  .to-bitcoin-600 { --tw-gradient-to: rgb(var(--color-bitcoin-600)); }
+  .to-bitcoin-700 { --tw-gradient-to: rgb(var(--color-bitcoin-700)); }
+  .to-bitcoin-800 { --tw-gradient-to: rgb(var(--color-bitcoin-800)); }
+  .to-bitcoin-900 { --tw-gradient-to: rgb(var(--color-bitcoin-900)); }
+}
