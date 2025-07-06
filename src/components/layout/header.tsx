@@ -6,6 +6,7 @@ import { FiMenu, FiX, FiUser, FiLogOut, FiSettings } from 'react-icons/fi';
 import { useStacksAuth } from '@/hooks/useStacks';
 import { truncateAddress } from '@/lib/stacks';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Button } from '@/components/ui/button';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -53,13 +54,14 @@ export function Header() {
               <div className="w-6 h-6 loading-spinner"></div>
             ) : isSignedIn && userAddress ? (
               <div className="relative group">
-                <button
-                  type="button"
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-muted hover:bg-accent transition-colors duration-200"
+                <Button
+                  variant="outline"
+                  size="md"
+                  className="flex items-center space-x-2"
                 >
                   <FiUser className="w-4 h-4" />
                   <span className="text-sm font-medium">{truncateAddress(userAddress)}</span>
-                </button>
+                </Button>
 
                 {/* Dropdown Menu */}
                 <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
@@ -91,13 +93,15 @@ export function Header() {
                 </div>
               </div>
             ) : (
-              <button
-                type="button"
+              <Button
                 onClick={connect}
-                className="btn-primary"
+                variant="primary"
+                size="md"
+                animated
+                className="shadow-md hover:shadow-lg"
               >
                 Connect Wallet
-              </button>
+              </Button>
             )}
 
             {/* Mobile menu button */}

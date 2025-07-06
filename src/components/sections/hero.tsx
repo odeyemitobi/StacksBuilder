@@ -1,0 +1,235 @@
+'use client';
+
+import Link from 'next/link';
+import { FiArrowRight, FiPlay } from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Section } from '@/components/ui/section';
+import { AnimatedBadge } from '@/components/ui/animated-badge';
+
+export function Hero() {
+  return (
+    <Section background="default" padding="xl" className="relative overflow-hidden">
+      {/* Enhanced Background Elements */}
+      <div className="absolute inset-0 -z-10">
+        {/* Main gradient orbs */}
+        <motion.div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-br from-stacks-500/15 via-purple-500/8 to-transparent rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-bitcoin-500/15 via-orange-500/8 to-transparent rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
+        />
+
+        {/* Additional floating elements */}
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-[200px] h-[200px] bg-gradient-to-br from-stacks-400/10 to-transparent rounded-full blur-2xl"
+          animate={{
+            y: [-20, 20, -20],
+            x: [-10, 10, -10],
+          }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute top-3/4 right-1/4 w-[150px] h-[150px] bg-gradient-to-br from-bitcoin-400/10 to-transparent rounded-full blur-2xl"
+          animate={{
+            y: [20, -20, 20],
+            x: [10, -10, 10],
+          }}
+          transition={{
+            duration: 7,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
+        />
+      </div>
+
+      <div className="relative">
+        {/* Main Content */}
+        <div className="text-center max-w-5xl mx-auto">
+          {/* Enhanced Animated Badge - Inspired by Augment Code */}
+          <div className="mb-8">
+            <AnimatedBadge>
+              Join 500+ Bitcoin developers building the future
+            </AnimatedBadge>
+          </div>
+
+          {/* Enhanced Main Headline with Floating Animation */}
+          <motion.h1
+            className="text-5xl md:text-7xl font-bold text-foreground mb-6"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            <motion.span
+              animate={{ y: [-2, 2, -2] }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              Showcase Your{' '}
+            </motion.span>
+            <motion.span
+              className="text-gradient-stacks"
+              animate={{ y: [2, -2, 2] }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.5
+              }}
+            >
+              Bitcoin
+            </motion.span>
+            <br />
+            <motion.span
+              animate={{ y: [-1, 1, -1] }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 1
+              }}
+            >
+              Development Skills
+            </motion.span>
+          </motion.h1>
+
+          {/* Enhanced Subheadline */}
+          <motion.p
+            className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            The premier platform for Stacks developers to build their reputation,
+            showcase their projects, and connect with opportunities in the Bitcoin ecosystem.
+          </motion.p>
+
+          {/* Enhanced CTA Buttons with Floating Effects */}
+          <motion.div
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+          >
+            <motion.div
+              whileHover={{
+                y: -2,
+                boxShadow: "0 20px 40px -10px rgba(0, 0, 0, 0.15)"
+              }}
+              whileTap={{ scale: 0.98 }}
+              animate={{ y: [-1, 1, -1] }}
+              transition={{
+                y: {
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }
+              }}
+            >
+              <Button size="lg" className="text-lg px-8 py-4 group shadow-lg">
+                <Link href="/signup" className="flex items-center space-x-2">
+                  <span>Create Your Profile</span>
+                  <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+            </motion.div>
+
+            <motion.div
+              whileHover={{
+                y: -2,
+                borderColor: "rgba(99, 102, 241, 0.3)"
+              }}
+              whileTap={{ scale: 0.98 }}
+              animate={{ y: [1, -1, 1] }}
+              transition={{
+                y: {
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.5
+                }
+              }}
+            >
+              <Button variant="outline" size="lg" className="text-lg px-8 py-4 group backdrop-blur-sm">
+                <Link href="/developers" className="flex items-center space-x-2">
+                  <FiPlay className="w-4 h-4" />
+                  <span>Watch Demo</span>
+                </Link>
+              </Button>
+            </motion.div>
+          </motion.div>
+
+          {/* Enhanced Trust Indicators with Floating Animation */}
+          <motion.div
+            className="flex flex-wrap justify-center items-center gap-8 text-muted-foreground"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+          >
+            {[
+              { icon: "S", label: "Stacks Foundation", bg: "bg-stacks-100 dark:bg-stacks-900/20", text: "text-stacks-600" },
+              { icon: "₿", label: "Bitcoin Ecosystem", bg: "bg-bitcoin-100 dark:bg-bitcoin-900/20", text: "text-bitcoin-600" },
+              { icon: "G", label: "GitHub Integration", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400" }
+            ].map((item, index) => (
+              <motion.div
+                key={index}
+                className="flex items-center space-x-3 group cursor-pointer"
+                whileHover={{
+                  y: -2,
+                  scale: 1.05
+                }}
+                animate={{ y: [-1, 1, -1] }}
+                transition={{
+                  y: {
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: index * 0.3
+                  }
+                }}
+              >
+                <motion.div
+                  className={`w-10 h-10 ${item.bg} rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow`}
+                  whileHover={{ rotate: 5 }}
+                >
+                  <span className={`${item.text} font-bold text-base`}>{item.icon}</span>
+                </motion.div>
+                <span className="text-sm font-medium group-hover:text-foreground transition-colors">{item.label}</span>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+    </Section>
+  );
+}

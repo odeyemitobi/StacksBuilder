@@ -45,7 +45,7 @@
   --color-destructive-foreground: 255 255 255; /* white */
 
   /* Custom Fonts */
-  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --font-family-sans: 'Lato', system-ui, sans-serif;
   --font-family-mono: 'JetBrains Mono', Menlo, Monaco, monospace;
 
   /* Custom Animations */
@@ -126,10 +126,43 @@
     background-color: rgb(var(--color-primary));
     color: rgb(var(--color-primary-foreground));
     border-color: rgb(var(--color-primary));
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   }
 
   .btn-primary:hover {
     background-color: rgb(var(--color-primary) / 0.9);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+
+  /* CTA button for gradient backgrounds */
+  .btn-cta-gradient {
+    background-color: white !important;
+    color: #111827 !important;
+    border-color: white !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+  }
+
+  .btn-cta-gradient:hover {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05) !important;
+  }
+
+  /* Ensure text inside CTA button is always dark and visible */
+  .btn-cta-gradient * {
+    color: #111827 !important;
+  }
+
+  .btn-cta-gradient:hover * {
+    color: #0f172a !important;
+  }
+
+  /* Override any conflicting styles */
+  .btn-cta-gradient a,
+  .btn-cta-gradient span,
+  .btn-cta-gradient svg {
+    color: #111827 !important;
   }
 
   .btn-secondary {
@@ -147,11 +180,13 @@
     background-color: transparent;
     color: rgb(var(--color-foreground));
     border: 1px solid rgb(var(--color-border));
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   }
 
   .btn-outline:hover {
     background-color: rgb(var(--color-accent));
-    border-color: rgb(var(--color-border));
+    border-color: rgb(var(--color-muted-foreground) / 0.3);
+    box-shadow: 0 2px 4px 0 rgb(0 0 0 / 0.1);
   }
 
   .btn-ghost {
@@ -292,19 +327,63 @@
     background: linear-gradient(135deg, rgb(var(--color-bitcoin-500)) 0%, rgb(var(--color-bitcoin-600)) 100%);
   }
 
-  /* Text gradients */
+  /* Light mode: dark text on gradient backgrounds */
+  .gradient-stacks {
+    color: #1f2937;
+  }
+
+  .gradient-stacks h1,
+  .gradient-stacks h2,
+  .gradient-stacks h3,
+  .gradient-stacks p {
+    color: #1f2937 !important;
+  }
+
+  /* Dark mode: white text on gradient backgrounds */
+  .dark .gradient-stacks {
+    color: white;
+  }
+
+  .dark .gradient-stacks h1,
+  .dark .gradient-stacks h2,
+  .dark .gradient-stacks h3,
+  .dark .gradient-stacks p {
+    color: white !important;
+  }
+
+  /* Enhanced Text gradients with animation */
   .text-gradient-stacks {
-    background: linear-gradient(to right, rgb(var(--color-stacks-600)), #8b5cf6);
+    background: linear-gradient(135deg, rgb(var(--color-stacks-600)), #8b5cf6, rgb(var(--color-stacks-500)));
+    background-size: 200% 200%;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    animation: gradientShift 6s ease-in-out infinite;
   }
 
   .text-gradient-bitcoin {
-    background: linear-gradient(to right, rgb(var(--color-bitcoin-500)), rgb(var(--color-bitcoin-600)));
+    background: linear-gradient(135deg, rgb(var(--color-bitcoin-500)), rgb(var(--color-bitcoin-600)), rgb(var(--color-bitcoin-400)));
+    background-size: 200% 200%;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    animation: gradientShift 6s ease-in-out infinite;
+  }
+
+  /* Backdrop blur utilities with Safari support */
+  .backdrop-blur-sm {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+
+  .backdrop-blur {
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  .backdrop-blur-lg {
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
   }
 }
 
@@ -340,6 +419,24 @@
   }
 }
 
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes borderSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @layer utilities {
   /* Custom utilities */
   .text-balance {
@@ -368,6 +465,43 @@
 
   .animate-slide-down {
     animation: slideDown 0.3s ease-out;
+  }
+
+  .animate-border-spin {
+    animation: borderSpin 3s linear infinite;
+  }
+
+  /* Animated badge border effect */
+  .badge-animated-border {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .badge-animated-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    background: conic-gradient(from 0deg, transparent, #22c55e, transparent);
+    border-radius: inherit;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    animation: borderSpin 2.5s linear infinite;
+  }
+
+  /* Animation delay utilities */
+  .\[animation-delay\:0\.1s\] {
+    animation-delay: 0.1s;
+  }
+
+  .\[animation-delay\:0\.2s\] {
+    animation-delay: 0.2s;
+  }
+
+  .\[animation-delay\:0\.3s\] {
+    animation-delay: 0.3s;
   }
 
   /* Focus utilities */
