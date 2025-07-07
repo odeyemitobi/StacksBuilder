@@ -353,21 +353,40 @@
 
   /* Enhanced Text gradients with animation */
   .text-gradient-stacks {
-    background: linear-gradient(135deg, rgb(var(--color-stacks-600)), #8b5cf6, rgb(var(--color-stacks-500)));
+    color: #6366f1 !important;
+    display: inline-block !important;
+    font-weight: inherit !important;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #5145cd);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     background-clip: text;
-    color: transparent;
     animation: gradientShift 6s ease-in-out infinite;
   }
 
+  /* Only apply gradient effect if supported */
+  @supports (-webkit-background-clip: text) {
+    .text-gradient-stacks {
+      -webkit-text-fill-color: transparent;
+    }
+  }
+
   .text-gradient-bitcoin {
+    /* Fallback color first */
+    color: rgb(var(--color-bitcoin-600));
     background: linear-gradient(135deg, rgb(var(--color-bitcoin-500)), rgb(var(--color-bitcoin-600)), rgb(var(--color-bitcoin-400)));
     background-size: 200% 200%;
     -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     background-clip: text;
-    color: transparent;
     animation: gradientShift 6s ease-in-out infinite;
+  }
+
+  /* Fallback for browsers that don't support background-clip: text */
+  @supports not (-webkit-background-clip: text) {
+    .text-gradient-bitcoin {
+      color: rgb(var(--color-bitcoin-600)) !important;
+      background: none !important;
+    }
   }
 
   /* Backdrop blur utilities with Safari support */

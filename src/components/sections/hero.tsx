@@ -120,6 +120,7 @@ export function Hero() {
                 ease: "easeInOut",
                 delay: 0.5
               }}
+              style={{ color: '#6366f1', display: 'inline-block' }}
             >
               Bitcoin
             </motion.span>
