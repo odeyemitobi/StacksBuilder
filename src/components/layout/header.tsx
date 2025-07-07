@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import { FiMenu, FiX, FiUser, FiLogOut, FiSettings } from 'react-icons/fi';
 import { useStacksAuth } from '@/hooks/useStacks';
@@ -25,11 +26,24 @@ export function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-stacks-500 to-stacks-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">SB</span>
-              </div>
-              <span className="text-xl font-bold text-foreground">StacksBuilder</span>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/main-logo.png"
+                alt="StacksBuilder"
+                width={180}
+                height={40}
+                className="h-8 w-auto hidden sm:block"
+                priority
+              />
+              {/* Mobile logo - just the icon */}
+              <Image
+                src="/single-favicon.png"
+                alt="StacksBuilder"
+                width={32}
+                height={32}
+                className="h-8 w-8 sm:hidden"
+                priority
+              />
             </Link>
           </div>
 

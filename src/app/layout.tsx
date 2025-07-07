@@ -68,6 +68,11 @@ export const metadata: Metadata = {
   authors: [{ name: 'StacksBuilder Team' }],
   creator: 'StacksBuilder',
   publisher: 'StacksBuilder',
+  icons: {
+    icon: '/single-favicon.png',
+    shortcut: '/single-favicon.png',
+    apple: '/single-favicon.png',
+  },
   formatDetection: {
     email: false,
     address: false,

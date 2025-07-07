@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { FiGithub, FiTwitter, FiMessageCircle } from 'react-icons/fi';
 
 export function Footer() {
@@ -36,11 +37,14 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand Section */}
           <div className="lg:col-span-2">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-stacks-500 to-stacks-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">SB</span>
-              </div>
-              <span className="text-xl font-bold">StacksBuilder</span>
+            <div className="flex items-center mb-4">
+              <Image
+                src="/main-logo.png"
+                alt="StacksBuilder"
+                width={160}
+                height={36}
+                className="h-7 w-auto"
+              />
             </div>
             <p className="text-muted-foreground mb-6 max-w-md">
               The premier platform for Stacks developers to showcase their work,
