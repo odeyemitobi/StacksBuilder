@@ -33,7 +33,16 @@ const nextConfig = {
       fs: false,
       net: false,
       tls: false,
+      punycode: require.resolve('punycode/'),
     };
+
+    // Suppress punycode deprecation warnings
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        punycode: require.resolve('punycode/'),
+      };
+    }
 
     return config;
   },

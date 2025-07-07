@@ -60,7 +60,6 @@ export function Features({
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: index * 0.1 }}
             whileHover={{
               y: -8,
               transition: { duration: 0.2 }
@@ -69,6 +68,7 @@ export function Features({
               y: [-2, 2, -2],
             }}
             transition={{
+              opacity: { duration: 0.6, delay: index * 0.1 },
               y: {
                 duration: 4,
                 repeat: Infinity,

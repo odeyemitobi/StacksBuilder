@@ -86,7 +86,6 @@ export function FeaturedProjects({
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: index * 0.1 }}
             whileHover={{
               y: -6,
               transition: { duration: 0.2 }
@@ -95,6 +94,7 @@ export function FeaturedProjects({
               y: [-1, 1, -1],
             }}
             transition={{
+              opacity: { duration: 0.6, delay: index * 0.1 },
               y: {
                 duration: 4,
                 repeat: Infinity,
