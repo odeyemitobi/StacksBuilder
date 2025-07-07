@@ -130,7 +130,7 @@ export default function RootLayout({
       <body className={`${lato.className} h-full flex flex-col`} suppressHydrationWarning>
         <Providers>
           <Header />
-          <main className="flex-1">
+          <main className="flex-1 pt-16">
             {children}
           </main>
           <Footer />

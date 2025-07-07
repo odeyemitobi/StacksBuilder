@@ -73,13 +73,14 @@ export function Hero() {
           {/* Enhanced Animated Badge - Inspired by Augment Code */}
           <div className="mb-8">
             <AnimatedBadge>
-              Join 500+ Bitcoin developers building the future
+              <span className="hidden sm:inline">Join 500+ Bitcoin developers </span>
+              building the future
             </AnimatedBadge>
           </div>
 
           {/* Enhanced Main Headline with Floating Animation */}
           <motion.h1
-            className="text-5xl md:text-7xl font-bold text-foreground mb-6"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-foreground mb-6 leading-tight"
             initial={{ opacity: 0, y: 30 }}
             animate={{
               opacity: 1,
@@ -125,7 +126,7 @@ export function Hero() {
 
           {/* Enhanced Subheadline */}
           <motion.p
-            className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed"
+            className="text-sm sm:text-lg md:text-xl lg:text-2xl text-muted-foreground mb-8 sm:mb-12 max-w-4xl mx-auto leading-relaxed px-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
@@ -136,7 +137,7 @@ export function Hero() {
 
           {/* Enhanced CTA Buttons with Floating Effects */}
           <motion.div
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 sm:mb-16 px-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}

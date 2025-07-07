@@ -60,14 +60,14 @@ export function CTA({
       )}
 
       <motion.div
-        className="text-center max-w-4xl mx-auto"
+        className="text-center max-w-4xl mx-auto px-4"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.8 }}
       >
         <motion.h2
-          className={`text-3xl md:text-4xl font-bold mb-6 ${textColor}`}
+          className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 leading-tight ${textColor}`}
           animate={{
             y: [-2, 2, -2],
           }}
@@ -80,7 +80,7 @@ export function CTA({
           {title}
         </motion.h2>
         <motion.p
-          className={`text-xl mb-8 leading-relaxed ${descriptionColor}`}
+          className={`text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 leading-relaxed ${descriptionColor}`}
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}

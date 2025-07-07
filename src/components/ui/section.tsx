@@ -22,10 +22,10 @@ export function Section({
   };
 
   const paddings = {
-    sm: 'py-8',
-    md: 'py-12',
-    lg: 'py-16 lg:py-20',
-    xl: 'py-20 lg:py-32'
+    sm: 'py-6 sm:py-8',
+    md: 'py-8 sm:py-12 lg:py-16',
+    lg: 'py-12 sm:py-16 lg:py-20',
+    xl: 'py-16 sm:py-20 lg:py-24 xl:py-32'
   };
 
   return (
