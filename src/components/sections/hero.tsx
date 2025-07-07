@@ -1,11 +1,24 @@
 'use client';
 
 import Link from 'next/link';
-import { FiArrowRight, FiPlay } from 'react-icons/fi';
+import { FiArrowRight, FiPlay, FiGithub } from 'react-icons/fi';
+import { IoLogoBitcoin } from 'react-icons/io';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Section } from '@/components/ui/section';
 import { AnimatedBadge } from '@/components/ui/animated-badge';
+
+// Custom Stacks Icon Component
+const StacksIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path d="M12 0L2 6v12l10 6 10-6V6L12 0zm8 16.5l-8 4.8-8-4.8V7.5l8-4.8 8 4.8v9z"/>
+    <path d="M12 3L6 6.5v7l6 3.5 6-3.5v-7L12 3zm4 9.5l-4 2.3-4-2.3V8.5l4-2.3 4 2.3v4z"/>
+  </svg>
+);
 
 export function Hero() {
   return (
@@ -198,36 +211,51 @@ export function Hero() {
             transition={{ duration: 0.8, delay: 0.8 }}
           >
             {[
-              { icon: "S", label: "Stacks Foundation", bg: "bg-stacks-100 dark:bg-stacks-900/20", text: "text-stacks-600" },
-              { icon: "₿", label: "Bitcoin Ecosystem", bg: "bg-bitcoin-100 dark:bg-bitcoin-900/20", text: "text-bitcoin-600" },
-              { icon: "G", label: "GitHub Integration", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400" }
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                className="flex items-center space-x-3 group cursor-pointer"
-                whileHover={{
-                  y: -2,
-                  scale: 1.05
-                }}
-                animate={{ y: [-1, 1, -1] }}
-                transition={{
-                  y: {
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: index * 0.3
-                  }
-                }}
-              >
+              {
+                icon: StacksIcon,
+                label: "Stacks Foundation",
+                iconColor: "text-stacks-600 dark:text-stacks-400"
+              },
+              {
+                icon: IoLogoBitcoin,
+                label: "Bitcoin Ecosystem",
+                iconColor: "text-bitcoin-600 dark:text-bitcoin-400"
+              },
+              {
+                icon: FiGithub,
+                label: "GitHub Integration",
+                iconColor: "text-foreground"
+              }
+            ].map((item, index) => {
+              const IconComponent = item.icon;
+              return (
                 <motion.div
-                  className={`w-10 h-10 ${item.bg} rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow`}
-                  whileHover={{ rotate: 5 }}
+                  key={index}
+                  className="flex items-center space-x-3 group cursor-pointer"
+                  whileHover={{
+                    y: -2,
+                    scale: 1.05
+                  }}
+                  animate={{ y: [-1, 1, -1] }}
+                  transition={{
+                    y: {
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: index * 0.3
+                    }
+                  }}
                 >
-                  <span className={`${item.text} font-bold text-base`}>{item.icon}</span>
+                  <motion.div
+                    className="w-10 h-10 bg-muted hover:bg-accent rounded-lg border border-border flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200"
+                    whileHover={{ rotate: 5 }}
+                  >
+                    <IconComponent className={`w-5 h-5 ${item.iconColor}`} />
+                  </motion.div>
+                  <span className="text-sm font-medium group-hover:text-foreground transition-colors">{item.label}</span>
                 </motion.div>
-                <span className="text-sm font-medium group-hover:text-foreground transition-colors">{item.label}</span>
-              </motion.div>
-            ))}
+              );
+            })}
           </motion.div>
         </div>
       </div>
