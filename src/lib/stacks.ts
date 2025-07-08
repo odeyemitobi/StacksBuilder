@@ -312,9 +312,14 @@ export const readProfileFromContract = async (userAddress: string) => {
           linkedinUsername: storedProfileData.linkedinUsername || '',
           portfolioProjects: [],
           reputation: {
-            score: 850,
-            endorsements: 23,
-            level: 'Advanced'
+            overall: 850,
+            contractContributions: 12,
+            communityEndorsements: 23,
+            projectCompletions: 8,
+            mentorshipHours: 45,
+            githubContributions: 156,
+            stacksTransactions: 89,
+            lastUpdated: Math.floor(Date.now() / 1000)
           },
           isVerified: false,
           joinedAt: Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60), // 30 days ago
@@ -339,9 +344,14 @@ export const readProfileFromContract = async (userAddress: string) => {
           linkedinUsername: '',
           portfolioProjects: [],
           reputation: {
-            score: 0,
-            endorsements: 0,
-            level: 'Newcomer'
+            overall: 0,
+            contractContributions: 0,
+            communityEndorsements: 0,
+            projectCompletions: 0,
+            mentorshipHours: 0,
+            githubContributions: 0,
+            stacksTransactions: 0,
+            lastUpdated: Math.floor(Date.now() / 1000)
           },
           isVerified: false,
           joinedAt: Math.floor(Date.now() / 1000),
@@ -419,9 +429,14 @@ export const readProfileFromContract = async (userAddress: string) => {
       twitterHandle: profile.twitterHandle || profile.twitterUsername || profile['twitter-handle'] || '',
       portfolioProjects: Array.isArray(profile.portfolioProjects) ? profile.portfolioProjects : [],
       reputation: {
-        score: profile.reputation?.score || 0,
-        endorsements: profile.reputation?.endorsements || 0,
-        level: profile.reputation?.level || 'Newcomer'
+        overall: profile.reputation?.overall || profile.reputation?.score || 0,
+        contractContributions: profile.reputation?.contractContributions || 0,
+        communityEndorsements: profile.reputation?.communityEndorsements || profile.reputation?.endorsements || 0,
+        projectCompletions: profile.reputation?.projectCompletions || 0,
+        mentorshipHours: profile.reputation?.mentorshipHours || 0,
+        githubContributions: profile.reputation?.githubContributions || 0,
+        stacksTransactions: profile.reputation?.stacksTransactions || 0,
+        lastUpdated: profile.reputation?.lastUpdated || Math.floor(Date.now() / 1000)
       },
       isVerified: profile.isVerified || false,
       joinedAt: profile.joinedAt || Math.floor(Date.now() / 1000),
@@ -472,9 +487,14 @@ export const readProfileFromContract = async (userAddress: string) => {
           linkedinUsername: storedProfileData.linkedinUsername || '',
           portfolioProjects: [],
           reputation: {
-            score: 850,
-            endorsements: 23,
-            level: 'Advanced'
+            overall: 850,
+            contractContributions: 12,
+            communityEndorsements: 23,
+            projectCompletions: 8,
+            mentorshipHours: 45,
+            githubContributions: 156,
+            stacksTransactions: 89,
+            lastUpdated: Math.floor(Date.now() / 1000)
           },
           isVerified: false,
           joinedAt: Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60), // 30 days ago
@@ -499,9 +519,14 @@ export const readProfileFromContract = async (userAddress: string) => {
           linkedinUsername: '',
           portfolioProjects: [],
           reputation: {
-            score: 0,
-            endorsements: 0,
-            level: 'Newcomer'
+            overall: 0,
+            contractContributions: 0,
+            communityEndorsements: 0,
+            projectCompletions: 0,
+            mentorshipHours: 0,
+            githubContributions: 0,
+            stacksTransactions: 0,
+            lastUpdated: Math.floor(Date.now() / 1000)
           },
           isVerified: false,
           joinedAt: Math.floor(Date.now() / 1000),
