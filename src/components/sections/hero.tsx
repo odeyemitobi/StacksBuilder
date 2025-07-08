@@ -174,12 +174,12 @@ export function Hero() {
                 }
               }}
             >
-              <Button size="lg" className="text-lg px-8 py-4 group shadow-lg">
-                <Link href="/signup" className="flex items-center space-x-2">
+              <Link href="/profile/create">
+                <Button size="lg" className="text-lg px-8 py-4 group shadow-lg">
                   <span>Create Your Profile</span>
-                  <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
+                  <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 ml-2" />
+                </Button>
+              </Link>
             </motion.div>
 
             <motion.div

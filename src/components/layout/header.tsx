@@ -88,7 +88,7 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm font-medium transition-colors duration-200"
+                className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm font-medium transition-colors duration-200 cursor-pointer"
               >
                 {item.name}
               </Link>
@@ -116,15 +116,15 @@ export function Header() {
                 <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="py-1">
                     <Link
-                      href="/profile"
-                      className="flex items-center space-x-2 px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      href={`/profile/${userAddress}`}
+                      className="flex items-center space-x-2 px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer"
                     >
                       <FiUser className="w-4 h-4" />
                       <span>My Profile</span>
                     </Link>
                     <Link
                       href="/settings"
-                      className="flex items-center space-x-2 px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      className="flex items-center space-x-2 px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer"
                     >
                       <FiSettings className="w-4 h-4" />
                       <span>Settings</span>
@@ -133,7 +133,7 @@ export function Header() {
                     <button
                       type="button"
                       onClick={disconnect}
-                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
+                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-destructive hover:bg-destructive/10 cursor-pointer"
                     >
                       <FiLogOut className="w-4 h-4" />
                       <span>Disconnect</span>
@@ -165,7 +165,7 @@ export function Header() {
             <button
               type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
+              className="lg:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
             >
               {isMenuOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
             </button>
@@ -192,7 +192,7 @@ export function Header() {
                   >
                     <Link
                       href={item.href}
-                      className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm font-medium transition-colors duration-200 block"
+                      className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm font-medium transition-colors duration-200 block cursor-pointer"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       {item.name}

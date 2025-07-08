@@ -28,7 +28,7 @@ export function ThemeToggle() {
     <div className="relative group">
       <button
         type="button"
-        className="w-9 h-9 rounded-lg bg-muted hover:bg-accent transition-colors duration-200 flex items-center justify-center border border-border"
+        className="w-9 h-9 rounded-lg bg-muted hover:bg-accent transition-colors duration-200 flex items-center justify-center border border-border cursor-pointer"
         aria-label="Toggle theme"
       >
         {theme === 'light' && <FiSun className="w-4 h-4 text-foreground" />}
@@ -46,7 +46,7 @@ export function ThemeToggle() {
                 type="button"
                 key={themeOption.name}
                 onClick={() => setTheme(themeOption.name)}
-                className={`flex items-center space-x-2 w-full px-3 py-2 text-sm transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg ${
+                className={`flex items-center space-x-2 w-full px-3 py-2 text-sm transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg cursor-pointer ${
                   theme === themeOption.name
                     ? 'bg-accent text-accent-foreground'
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground'

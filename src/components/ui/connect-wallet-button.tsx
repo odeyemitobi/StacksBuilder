@@ -116,8 +116,8 @@ export function ConnectWalletButton({
       {showDropdown && (
         <>
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-40" 
+          <div
+            className="fixed inset-0 z-40 cursor-default"
             onClick={() => setShowDropdown(false)}
           />
           
@@ -151,7 +151,7 @@ export function ConnectWalletButton({
               <button
                 type="button"
                 onClick={handleCopyAddress}
-                className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-foreground hover:bg-accent rounded-md transition-colors"
+                className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
               >
                 {copied ? (
                   <FiCheck className="w-4 h-4 text-green-500" />
@@ -167,7 +167,7 @@ export function ConnectWalletButton({
                   setShowDropdown(false);
                   // Navigate to profile when implemented
                 }}
-                className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-foreground hover:bg-accent rounded-md transition-colors"
+                className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
               >
                 <FiUser className="w-4 h-4" />
                 <span>View Profile</span>
@@ -178,7 +178,7 @@ export function ConnectWalletButton({
               <button
                 type="button"
                 onClick={handleDisconnect}
-                className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md transition-colors cursor-pointer"
               >
                 <FiLogOut className="w-4 h-4" />
                 <span>Disconnect</span>

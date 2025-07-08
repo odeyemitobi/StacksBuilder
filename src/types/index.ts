@@ -174,13 +174,13 @@ export interface PaginatedResponse<T> {
 export interface CreateProfileForm {
   displayName: string;
   bio: string;
+  location: string;
+  website: string;
+  githubUsername: string;
+  twitterUsername: string;
+  linkedinUsername: string;
   skills: string[];
-  githubUsername?: string;
-  twitterHandle?: string;
-  websiteUrl?: string;
-  location?: string;
-  availableForWork: boolean;
-  hourlyRate?: number;
+  specialties: string[];
 }
 
 export interface CreateProjectForm {

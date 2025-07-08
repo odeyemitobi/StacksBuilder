@@ -146,7 +146,7 @@ export function FeaturedProjects({
               <div className="flex space-x-3">
                 <motion.a
                   href={project.githubUrl}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title="View on GitHub"
                   whileHover={{
                     scale: 1.2,
@@ -158,7 +158,7 @@ export function FeaturedProjects({
                 </motion.a>
                 <motion.a
                   href={project.liveUrl}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title="View live project"
                   whileHover={{
                     scale: 1.2,
