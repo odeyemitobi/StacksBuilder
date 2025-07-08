@@ -9,9 +9,11 @@ import {
   getUserAddress,
   detectInstalledWallets,
   getWalletInfo,
+  readProfileFromContract,
   type SupportedWallet
 } from '@/lib/stacks';
 import { DeveloperProfile } from '@/types';
+import { WalletCookies, MigrationUtils } from '@/lib/cookies';
 
 export interface StacksAuthState {
   isSignedIn: boolean;
@@ -38,11 +40,14 @@ export const useStacksAuth = () => {
     const address = getUserAddress();
     const installedWallets = detectInstalledWallets();
 
-    // Determine connected wallet type from userData or localStorage
+    // Run migration from localStorage to cookies
+    MigrationUtils.migrateWalletPreference();
+
+    // Determine connected wallet type from userData or secure cookies
     let connectedWallet: SupportedWallet | null = null;
     if (signedIn && userData) {
-      // Try to determine wallet type from user data or stored preference
-      connectedWallet = localStorage.getItem('stacksbuilder-wallet') as SupportedWallet || 'hiro';
+      // Try to determine wallet type from user data or stored preference in cookies
+      connectedWallet = WalletCookies.getWalletPreference() as SupportedWallet || 'hiro';
     }
 
     setAuthState({
@@ -69,7 +74,8 @@ export const useStacksAuth = () => {
 
   const connect = useCallback((walletId?: SupportedWallet) => {
     if (walletId) {
-      localStorage.setItem('stacksbuilder-wallet', walletId);
+      // Store wallet preference in secure cookie
+      WalletCookies.setWalletPreference(walletId);
       return connectSpecificWallet(walletId);
     } else {
       return connectWallet();
@@ -78,7 +84,8 @@ export const useStacksAuth = () => {
 
   const disconnect = useCallback(() => {
     disconnectWallet();
-    localStorage.removeItem('stacksbuilder-wallet');
+    // Remove wallet preference from secure cookie
+    WalletCookies.removeWalletPreference();
     setAuthState({
       isSignedIn: false,
       userData: null,
@@ -107,13 +114,9 @@ export const useProfile = (address?: string) => {
     setError(null);
 
     try {
-      // TODO: Replace with actual contract call
-      const response = await fetch(`/api/profiles/${userAddress}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch profile');
-      }
-      const data = await response.json();
-      setProfile(data.profile);
+      // Read profile data from smart contract
+      const profileData = await readProfileFromContract(userAddress);
+      setProfile(profileData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setProfile(null);
@@ -251,6 +254,7 @@ export const useMultiWallet = () => {
     setIsConnecting(true);
 
     try {
+      // This will automatically store the wallet preference in cookies via the connect function
       await connect(walletId);
       closeWalletSelector();
     } catch (error) {

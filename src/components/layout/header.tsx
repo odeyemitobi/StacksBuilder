@@ -5,8 +5,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { FiMenu, FiX, FiUser, FiLogOut, FiSettings } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMultiWallet } from '@/hooks/useStacks';
-import { WalletSelector } from '@/components/ui/wallet-selector';
+import { useStacksAuth } from '@/hooks/useStacks';
 import { truncateAddress } from '@/lib/stacks';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -19,14 +18,22 @@ export function Header() {
     userAddress,
     connectedWallet,
     isLoading,
-    isWalletSelectorOpen,
-    isConnecting,
-    selectedWallet,
-    openWalletSelector,
-    closeWalletSelector,
-    handleWalletSelect,
+    connect,
     disconnect
-  } = useMultiWallet();
+  } = useStacksAuth();
+
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const handleConnectWallet = async () => {
+    setIsConnecting(true);
+    try {
+      await connect(); // This will use the native Stacks Connect modal
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   const navigation = [
     { name: 'Developers', href: '/developers' },
@@ -143,7 +150,7 @@ export function Header() {
               </div>
             ) : (
               <Button
-                onClick={openWalletSelector}
+                onClick={handleConnectWallet}
                 variant="primary"
                 size="md"
                 animated
@@ -205,14 +212,7 @@ export function Header() {
         </AnimatePresence>
       </div>
 
-      {/* Wallet Selector Modal */}
-      <WalletSelector
-        isOpen={isWalletSelectorOpen}
-        onClose={closeWalletSelector}
-        onWalletSelect={handleWalletSelect}
-        isConnecting={isConnecting}
-        selectedWallet={selectedWallet}
-      />
+
     </motion.header>
   );
 }

@@ -5,6 +5,8 @@ import { FiArrowRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { Section } from '@/components/ui/section';
 import { Button } from '@/components/ui/button';
+import { useStacksAuth } from '@/hooks/useStacks';
+import { ProfileCookies, MigrationUtils } from '@/lib/cookies';
 
 interface CTAProps {
   title?: string;
@@ -14,17 +16,39 @@ interface CTAProps {
   background?: 'gradient-stacks' | 'gradient-bitcoin' | 'default';
 }
 
-export function CTA({ 
+export function CTA({
   title = "Ready to Build Your Reputation?",
   description = "Join hundreds of developers who are already showcasing their skills and connecting with opportunities in the Bitcoin ecosystem.",
   buttonText = "Get Started Today",
   buttonHref = "/signup",
   background = "gradient-stacks"
 }: CTAProps) {
+  const { isSignedIn, userAddress } = useStacksAuth();
+
+  // Run migration and check if user has created a profile using secure cookies
+  const hasCreatedProfile = userAddress ? (() => {
+    MigrationUtils.migrateProfileData(userAddress);
+    return ProfileCookies.hasProfileCreated(userAddress);
+  })() : false;
+
   const isGradient = background.includes('gradient');
   // Proper text colors for both light and dark modes
   const textColor = isGradient ? 'text-gray-900 dark:text-white' : 'text-foreground';
   const descriptionColor = isGradient ? 'text-gray-800 dark:text-gray-100' : 'text-muted-foreground';
+
+  // Dynamic content based on user state
+  const dynamicTitle = isSignedIn && hasCreatedProfile
+    ? "Keep Building Your Reputation!"
+    : title;
+  const dynamicDescription = isSignedIn && hasCreatedProfile
+    ? "Continue showcasing your projects and connecting with opportunities in the Bitcoin ecosystem."
+    : description;
+  const dynamicButtonText = isSignedIn && hasCreatedProfile
+    ? "View Your Profile"
+    : buttonText;
+  const dynamicButtonHref = isSignedIn && hasCreatedProfile
+    ? `/profile/${userAddress}`
+    : buttonHref;
   
   return (
     <Section background={background} padding="lg" className="relative overflow-hidden">
@@ -77,7 +101,7 @@ export function CTA({
             ease: "easeInOut"
           }}
         >
-          {title}
+          {dynamicTitle}
         </motion.h2>
         <motion.p
           className={`text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 leading-relaxed ${descriptionColor}`}
@@ -86,7 +110,7 @@ export function CTA({
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          {description}
+          {dynamicDescription}
         </motion.p>
 
         <motion.div
@@ -108,27 +132,54 @@ export function CTA({
             }
           }}
         >
-          {isGradient ? (
-            <Button
-              size="lg"
-              className="text-lg px-8 py-4 group shadow-lg btn-cta-gradient cursor-pointer"
-            >
-              <div className="flex items-center space-x-2">
-                <span>Coming Soon</span>
-                <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-              </div>
-            </Button>
+          {isSignedIn && hasCreatedProfile ? (
+            // Show working link for users with profiles
+            isGradient ? (
+              <Button
+                size="lg"
+                className="text-lg px-8 py-4 group shadow-lg btn-cta-gradient"
+              >
+                <Link href={dynamicButtonHref} className="flex items-center space-x-2">
+                  <span>{dynamicButtonText}</span>
+                  <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                variant="primary"
+                className="text-lg px-8 py-4 group shadow-lg"
+              >
+                <Link href={dynamicButtonHref} className="flex items-center space-x-2">
+                  <span>{dynamicButtonText}</span>
+                  <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+            )
           ) : (
-            <Button
-              size="lg"
-              variant="primary"
-              className="text-lg px-8 py-4 group shadow-lg cursor-pointer"
-            >
-              <div className="flex items-center space-x-2">
-                <span>Coming Soon</span>
-                <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-              </div>
-            </Button>
+            // Show "Coming Soon" for users without profiles or not signed in
+            isGradient ? (
+              <Button
+                size="lg"
+                className="text-lg px-8 py-4 group shadow-lg btn-cta-gradient cursor-pointer"
+              >
+                <div className="flex items-center space-x-2">
+                  <span>Coming Soon</span>
+                  <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                </div>
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                variant="primary"
+                className="text-lg px-8 py-4 group shadow-lg cursor-pointer"
+              >
+                <div className="flex items-center space-x-2">
+                  <span>Coming Soon</span>
+                  <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                </div>
+              </Button>
+            )
           )}
         </motion.div>
       </motion.div>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { FiArrowRight, FiPlay, FiGithub } from 'react-icons/fi';
 import { IoLogoBitcoin } from 'react-icons/io';
 import { motion } from 'framer-motion';
@@ -8,21 +9,27 @@ import { Button } from '@/components/ui/button';
 import { Section } from '@/components/ui/section';
 import { AnimatedBadge } from '@/components/ui/animated-badge';
 import { useStacksAuth } from '@/hooks/useStacks';
+import { ProfileCookies, MigrationUtils } from '@/lib/cookies';
 
-// Custom Stacks Icon Component
+// Stacks Icon Component using the PNG image
 const StacksIcon = ({ className }: { className?: string }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="currentColor"
+  <Image
+    src="/stacks.png"
+    alt="Stacks"
+    width={20}
+    height={20}
     className={className}
-  >
-    <path d="M12 0L2 6v12l10 6 10-6V6L12 0zm8 16.5l-8 4.8-8-4.8V7.5l8-4.8 8 4.8v9z"/>
-    <path d="M12 3L6 6.5v7l6 3.5 6-3.5v-7L12 3zm4 9.5l-4 2.3-4-2.3V8.5l4-2.3 4 2.3v4z"/>
-  </svg>
+  />
 );
 
 export function Hero() {
-  const { isSignedIn } = useStacksAuth();
+  const { isSignedIn, userAddress } = useStacksAuth();
+
+  // Run migration and check if user has created a profile using secure cookies
+  const hasCreatedProfile = userAddress ? (() => {
+    MigrationUtils.migrateProfileData(userAddress);
+    return ProfileCookies.hasProfileCreated(userAddress);
+  })() : false;
 
   return (
     <Section background="default" padding="xl" className="relative overflow-hidden">
@@ -174,12 +181,21 @@ export function Hero() {
                 }
               }}
             >
-              <Link href="/profile/create">
-                <Button size="lg" className="text-lg px-8 py-4 group shadow-lg">
-                  <span>Create Your Profile</span>
-                  <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 ml-2" />
-                </Button>
-              </Link>
+              {isSignedIn && hasCreatedProfile ? (
+                <Link href={`/profile/${userAddress}`}>
+                  <Button size="lg" className="text-lg px-8 py-4 group shadow-lg">
+                    <span>View Your Profile</span>
+                    <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 ml-2" />
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/profile/create">
+                  <Button size="lg" className="text-lg px-8 py-4 group shadow-lg">
+                    <span>Create Your Profile</span>
+                    <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 ml-2" />
+                  </Button>
+                </Link>
+              )}
             </motion.div>
 
             <motion.div

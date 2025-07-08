@@ -6,8 +6,11 @@ import {
   listCV,
   tupleCV,
   contractPrincipalCV,
-  standardPrincipalCV
+  standardPrincipalCV,
+  callReadOnlyFunction,
+  cvToValue
 } from '@stacks/transactions';
+import { ProfileCookies, MigrationUtils } from './cookies';
 
 // Wallet types and interfaces
 export interface WalletInfo {
@@ -32,14 +35,25 @@ export const getStacksNetwork = (): StacksNetwork => {
 export const appConfig = new AppConfig(['store_write', 'publish_data']);
 export const userSession = new UserSession({ appConfig });
 
+// Development configuration
+export const DEV_CONFIG = {
+  // Set to false to disable contract calls during development
+  // This prevents console errors when the contract isn't deployed yet
+  ENABLE_CONTRACT_CALLS: false,
+  // Set to true to enable verbose logging
+  ENABLE_DEBUG_LOGGING: false,
+};
+
 // Contract configuration
 export const CONTRACT_CONFIG = {
   testnet: {
-    contractAddress: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM', // Replace with your testnet address
+    // Using a placeholder address since the contract isn't deployed yet
+    // This will be updated when the actual contract is deployed
+    contractAddress: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
     contractName: 'stacksbuilder-profiles',
   },
   mainnet: {
-    contractAddress: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM', // Replace with your mainnet address
+    contractAddress: 'SP1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
     contractName: 'stacksbuilder-profiles',
   },
 };
@@ -178,9 +192,25 @@ const connectAsigna = async (): Promise<void> => {
   }
 };
 
-// Legacy function for backward compatibility
-export const connectWallet = () => {
-  return connectSpecificWallet('hiro');
+// Use native Stacks Connect modal
+export const connectWallet = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    showConnect({
+      appDetails: {
+        name: 'StacksBuilder',
+        icon: '/main-logo.png',
+      },
+      redirectTo: '/',
+      onFinish: () => {
+        resolve();
+        window.location.reload();
+      },
+      onCancel: () => {
+        reject(new Error('User cancelled connection'));
+      },
+      userSession,
+    });
+  });
 };
 
 export const disconnectWallet = () => {
@@ -243,4 +273,252 @@ export const truncateAddress = (address: string, chars = 4): string => {
 
 export const formatStxAmount = (amount: number): string => {
   return (amount / 1000000).toFixed(6); // Convert microSTX to STX
+};
+
+// Smart contract read functions
+export const readProfileFromContract = async (userAddress: string) => {
+  // Skip contract calls if disabled in development
+  if (!DEV_CONFIG.ENABLE_CONTRACT_CALLS) {
+    if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+      console.log('Contract calls disabled in development, checking local profile data...');
+    }
+
+    // Run migration from localStorage to cookies
+    MigrationUtils.migrateProfileData(userAddress);
+
+    // Check if this user has created a profile using secure cookies
+    const hasCreatedProfile = ProfileCookies.hasProfileCreated(userAddress);
+
+    if (hasCreatedProfile) {
+      if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+        console.log('User has created a profile, returning stored data');
+      }
+
+      // Get stored profile data
+      const storedProfileData = ProfileCookies.getProfileData(userAddress);
+
+      if (storedProfileData) {
+        // Return the actual stored profile data
+        return {
+          address: userAddress,
+          displayName: storedProfileData.displayName || 'Anonymous Developer',
+          bio: storedProfileData.bio || 'No bio provided',
+          skills: storedProfileData.skills || [],
+          githubUsername: storedProfileData.githubUsername || '',
+          twitterHandle: storedProfileData.twitterUsername ?
+            (storedProfileData.twitterUsername.startsWith('http') ?
+              storedProfileData.twitterUsername :
+              `https://twitter.com/${storedProfileData.twitterUsername}`) : '',
+          linkedinUsername: storedProfileData.linkedinUsername || '',
+          portfolioProjects: [],
+          reputation: {
+            score: 850,
+            endorsements: 23,
+            level: 'Advanced'
+          },
+          isVerified: false,
+          joinedAt: Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60), // 30 days ago
+          lastActive: Math.floor(Date.now() / 1000),
+          profileImageUrl: undefined,
+          websiteUrl: storedProfileData.website || '',
+          location: storedProfileData.location || '',
+          availableForWork: true,
+          hourlyRate: undefined,
+          // Add backward compatibility fields
+          specialties: storedProfileData.specialties || []
+        };
+      } else {
+        // Fallback to default data if no stored data found
+        return {
+          address: userAddress,
+          displayName: 'Anonymous Developer',
+          bio: 'No bio provided',
+          skills: [],
+          githubUsername: '',
+          twitterHandle: '',
+          linkedinUsername: '',
+          portfolioProjects: [],
+          reputation: {
+            score: 0,
+            endorsements: 0,
+            level: 'Newcomer'
+          },
+          isVerified: false,
+          joinedAt: Math.floor(Date.now() / 1000),
+          lastActive: Math.floor(Date.now() / 1000),
+          profileImageUrl: undefined,
+          websiteUrl: '',
+          location: '',
+          availableForWork: true,
+          hourlyRate: undefined,
+          specialties: []
+        };
+      }
+    } else {
+      if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+        console.log('User has not created a profile yet');
+      }
+      return null;
+    }
+  }
+
+  try {
+    if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+      console.log('Reading profile from contract for address:', userAddress);
+    }
+    const network = getStacksNetwork();
+    const contractConfig = getContractConfig();
+
+    if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+      console.log('Contract config:', contractConfig);
+      console.log('Network:', network);
+    }
+
+    const result = await callReadOnlyFunction({
+      contractAddress: contractConfig.contractAddress,
+      contractName: contractConfig.contractName,
+      functionName: 'get-profile',
+      functionArgs: [standardPrincipalCV(userAddress)],
+      network,
+      senderAddress: userAddress,
+    });
+
+    if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+      console.log('Raw contract result:', result);
+    }
+
+    // Convert the result to a JavaScript value
+    const profileData = cvToValue(result);
+    if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+      console.log('Converted profile data:', profileData);
+    }
+
+    // Check if profile exists (assuming the contract returns an optional)
+    if (!profileData || profileData.type === 'none') {
+      if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+        console.log('Profile not found or is none type');
+      }
+      return null;
+    }
+
+    // Extract profile data from the contract response
+    // Adjust this based on your actual contract structure
+    const profile = profileData.value || profileData;
+    if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+      console.log('Extracted profile:', profile);
+    }
+
+    // Create the profile object with additional fields for backward compatibility
+    const formattedProfile = {
+      address: userAddress,
+      bnsName: profile.bnsName || undefined,
+      displayName: profile.displayName || profile['display-name'] || '',
+      bio: profile.bio || '',
+      skills: Array.isArray(profile.skills) ? profile.skills : [],
+      githubUsername: profile.githubUsername || profile['github-username'] || '',
+      twitterHandle: profile.twitterHandle || profile.twitterUsername || profile['twitter-handle'] || '',
+      portfolioProjects: Array.isArray(profile.portfolioProjects) ? profile.portfolioProjects : [],
+      reputation: {
+        score: profile.reputation?.score || 0,
+        endorsements: profile.reputation?.endorsements || 0,
+        level: profile.reputation?.level || 'Newcomer'
+      },
+      isVerified: profile.isVerified || false,
+      joinedAt: profile.joinedAt || Math.floor(Date.now() / 1000),
+      lastActive: profile.lastActive || Math.floor(Date.now() / 1000),
+      profileImageUrl: profile.profileImageUrl || undefined,
+      websiteUrl: profile.website || profile.websiteUrl || '',
+      location: profile.location || '',
+      availableForWork: profile.availableForWork || false,
+      hourlyRate: profile.hourlyRate || undefined,
+      // Add backward compatibility fields
+      specialties: Array.isArray(profile.specialties) ? profile.specialties : []
+    };
+
+    return formattedProfile;
+  } catch (error) {
+    // Only log errors if debug logging is enabled
+    if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+      console.error('Error reading profile from contract:', error);
+      console.log('Contract call failed, checking if user has created a profile...');
+    }
+
+    // Run migration from localStorage to cookies
+    MigrationUtils.migrateProfileData(userAddress);
+
+    // Check if this user has created a profile using secure cookies
+    const hasCreatedProfile = ProfileCookies.hasProfileCreated(userAddress);
+
+    if (hasCreatedProfile) {
+      if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+        console.log('User has created a profile, returning stored data (fallback)');
+      }
+
+      // Get stored profile data
+      const storedProfileData = ProfileCookies.getProfileData(userAddress);
+
+      if (storedProfileData) {
+        // Return the actual stored profile data
+        return {
+          address: userAddress,
+          displayName: storedProfileData.displayName || 'Anonymous Developer',
+          bio: storedProfileData.bio || 'No bio provided',
+          skills: storedProfileData.skills || [],
+          githubUsername: storedProfileData.githubUsername || '',
+          twitterHandle: storedProfileData.twitterUsername ?
+            (storedProfileData.twitterUsername.startsWith('http') ?
+              storedProfileData.twitterUsername :
+              `https://twitter.com/${storedProfileData.twitterUsername}`) : '',
+          linkedinUsername: storedProfileData.linkedinUsername || '',
+          portfolioProjects: [],
+          reputation: {
+            score: 850,
+            endorsements: 23,
+            level: 'Advanced'
+          },
+          isVerified: false,
+          joinedAt: Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60), // 30 days ago
+          lastActive: Math.floor(Date.now() / 1000),
+          profileImageUrl: undefined,
+          websiteUrl: storedProfileData.website || '',
+          location: storedProfileData.location || '',
+          availableForWork: true,
+          hourlyRate: undefined,
+          // Add backward compatibility fields
+          specialties: storedProfileData.specialties || []
+        };
+      } else {
+        // Fallback to default data if no stored data found
+        return {
+          address: userAddress,
+          displayName: 'Anonymous Developer',
+          bio: 'No bio provided',
+          skills: [],
+          githubUsername: '',
+          twitterHandle: '',
+          linkedinUsername: '',
+          portfolioProjects: [],
+          reputation: {
+            score: 0,
+            endorsements: 0,
+            level: 'Newcomer'
+          },
+          isVerified: false,
+          joinedAt: Math.floor(Date.now() / 1000),
+          lastActive: Math.floor(Date.now() / 1000),
+          profileImageUrl: undefined,
+          websiteUrl: '',
+          location: '',
+          availableForWork: true,
+          hourlyRate: undefined,
+          specialties: []
+        };
+      }
+    } else {
+      if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
+        console.log('User has not created a profile yet');
+      }
+      return null;
+    }
+  }
 };

@@ -7,76 +7,17 @@ import { FiMapPin, FiGlobe, FiGithub, FiTwitter, FiLinkedin, FiEdit, FiStar, FiU
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Section } from '@/components/ui/section';
-import { useStacksAuth } from '@/hooks/useStacks';
+import { useStacksAuth, useProfile } from '@/hooks/useStacks';
+import { DeveloperProfile } from '@/types';
 import Link from 'next/link';
-
-interface DeveloperProfile {
-  address: string;
-  displayName: string;
-  bio: string;
-  location?: string;
-  website?: string;
-  githubUsername?: string;
-  twitterUsername?: string;
-  linkedinUsername?: string;
-  skills: string[];
-  specialties: string[];
-  joinedDate: string;
-  reputation: number;
-  endorsements: number;
-  projects: number;
-}
 
 export default function ProfilePage() {
   const params = useParams();
   const address = params.address as string;
   const { userAddress } = useStacksAuth();
-  const [profile, setProfile] = useState<DeveloperProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { profile, isLoading, error } = useProfile(address);
 
   const isOwnProfile = userAddress === address;
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setIsLoading(true);
-        
-        // TODO: Replace with actual smart contract call
-        // Simulate API call for now
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock profile data
-        const mockProfile: DeveloperProfile = {
-          address,
-          displayName: 'Bitcoin Builder',
-          bio: 'Full-stack developer passionate about Bitcoin and Stacks ecosystem. Building the future of decentralized finance with smart contracts and innovative DeFi protocols.',
-          location: 'San Francisco, CA',
-          website: 'https://bitcoinbuilder.dev',
-          githubUsername: 'bitcoinbuilder',
-          twitterUsername: 'bitcoinbuilder',
-          linkedinUsername: 'bitcoinbuilder',
-          skills: ['Clarity Smart Contracts', 'Bitcoin Development', 'Frontend Development', 'DeFi Protocols'],
-          specialties: ['sBTC Integration', 'Stacking Protocols', 'Smart Contract Security'],
-          joinedDate: '2024-01-15',
-          reputation: 850,
-          endorsements: 23,
-          projects: 8
-        };
-        
-        setProfile(mockProfile);
-      } catch (err) {
-        setError('Failed to load profile');
-        console.error('Error fetching profile:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (address) {
-      fetchProfile();
-    }
-  }, [address]);
 
   if (isLoading) {
     return (
@@ -109,8 +50,8 @@ export default function ProfilePage() {
     );
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long'
     });
@@ -146,7 +87,7 @@ export default function ProfilePage() {
                         <span>{profile.location}</span>
                       </div>
                     )}
-                    <div>Joined {formatDate(profile.joinedDate)}</div>
+                    <div>Joined {formatDate(profile.joinedAt)}</div>
                   </div>
                 </div>
               </div>
@@ -156,9 +97,9 @@ export default function ProfilePage() {
 
               {/* Social Links */}
               <div className="flex items-center space-x-4">
-                {profile.website && (
+                {profile.websiteUrl && (
                   <a
-                    href={profile.website}
+                    href={profile.websiteUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center space-x-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
@@ -180,9 +121,9 @@ export default function ProfilePage() {
                   </a>
                 )}
                 
-                {profile.twitterUsername && (
+                {profile.twitterHandle && (
                   <a
-                    href={`https://twitter.com/${profile.twitterUsername}`}
+                    href={profile.twitterHandle.startsWith('http') ? profile.twitterHandle : `https://twitter.com/${profile.twitterHandle}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center space-x-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
@@ -191,10 +132,10 @@ export default function ProfilePage() {
                     <span className="text-sm">Twitter</span>
                   </a>
                 )}
-                
+
                 {profile.linkedinUsername && (
                   <a
-                    href={`https://linkedin.com/in/${profile.linkedinUsername}`}
+                    href={profile.linkedinUsername.startsWith('http') ? profile.linkedinUsername : `https://linkedin.com/in/${profile.linkedinUsername}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center space-x-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
@@ -209,8 +150,8 @@ export default function ProfilePage() {
             {/* Action Button */}
             {isOwnProfile && (
               <div className="mt-6 md:mt-0">
-                <Link href="/profile/edit">
-                  <Button variant="outline" className="flex items-center space-x-2">
+                <Link href="/profile/create?edit=true">
+                  <Button variant="outline" className="flex items-center space-x-2 cursor-pointer">
                     <FiEdit className="w-4 h-4" />
                     <span>Edit Profile</span>
                   </Button>
@@ -231,23 +172,23 @@ export default function ProfilePage() {
                     <FiStar className="w-4 h-4 text-stacks-600" />
                     <span className="text-sm">Reputation</span>
                   </div>
-                  <span className="font-semibold">{profile.reputation}</span>
+                  <span className="font-semibold">{profile.reputation?.score || 0}</span>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <FiUsers className="w-4 h-4 text-bitcoin-600" />
                     <span className="text-sm">Endorsements</span>
                   </div>
-                  <span className="font-semibold">{profile.endorsements}</span>
+                  <span className="font-semibold">{profile.reputation?.endorsements || 0}</span>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <FiCode className="w-4 h-4 text-foreground" />
                     <span className="text-sm">Projects</span>
                   </div>
-                  <span className="font-semibold">{profile.projects}</span>
+                  <span className="font-semibold">{profile.portfolioProjects?.length || 0}</span>
                 </div>
               </div>
             </Card>
@@ -266,11 +207,11 @@ export default function ProfilePage() {
                 ))}
               </div>
               
-              {profile.specialties.length > 0 && (
+              {(profile as any).specialties && (profile as any).specialties.length > 0 && (
                 <>
                   <h3 className="text-md font-medium mt-6 mb-3">Stacks Specialties</h3>
                   <div className="space-y-2">
-                    {profile.specialties.map((specialty) => (
+                    {(profile as any).specialties.map((specialty: string) => (
                       <div
                         key={specialty}
                         className="px-3 py-1 bg-stacks-600/10 text-stacks-600 rounded-full text-sm"

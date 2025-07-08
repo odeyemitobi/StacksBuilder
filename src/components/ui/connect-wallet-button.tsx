@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiCreditCard, FiChevronDown, FiLogOut, FiUser, FiCopy, FiCheck } from 'react-icons/fi';
 import { Button } from './button';
-import { WalletSelector } from './wallet-selector';
-import { useMultiWallet } from '@/hooks/useStacks';
+import { useStacksAuth } from '@/hooks/useStacks';
 import { truncateAddress } from '@/lib/stacks';
 
 interface ConnectWalletButtonProps {
@@ -29,14 +28,22 @@ export function ConnectWalletButton({
     userAddress,
     connectedWallet,
     isLoading,
-    isWalletSelectorOpen,
-    isConnecting,
-    selectedWallet,
-    openWalletSelector,
-    closeWalletSelector,
-    handleWalletSelect,
+    connect,
     disconnect,
-  } = useMultiWallet();
+  } = useStacksAuth();
+
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const handleConnectWallet = async () => {
+    setIsConnecting(true);
+    try {
+      await connect(); // This will use the native Stacks Connect modal
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   const handleCopyAddress = async () => {
     if (userAddress) {
@@ -62,34 +69,24 @@ export function ConnectWalletButton({
 
   if (!isSignedIn) {
     return (
-      <>
-        <Button 
-          variant={variant} 
-          size={size} 
-          onClick={openWalletSelector}
-          className={`group ${className}`}
-          disabled={isConnecting}
-        >
-          {isConnecting ? (
-            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <FiCreditCard className="w-4 h-4" />
-          )}
-          {showText && (
-            <span className="ml-2">
-              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-            </span>
-          )}
-        </Button>
-
-        <WalletSelector
-          isOpen={isWalletSelectorOpen}
-          onClose={closeWalletSelector}
-          onWalletSelect={handleWalletSelect}
-          isConnecting={isConnecting}
-          selectedWallet={selectedWallet}
-        />
-      </>
+      <Button
+        variant={variant}
+        size={size}
+        onClick={handleConnectWallet}
+        className={`group ${className}`}
+        disabled={isConnecting}
+      >
+        {isConnecting ? (
+          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <FiCreditCard className="w-4 h-4" />
+        )}
+        {showText && (
+          <span className="ml-2">
+            {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+          </span>
+        )}
+      </Button>
     );
   }
 

@@ -20,6 +20,7 @@ export interface DeveloperProfile {
   skills: string[];
   githubUsername?: string;
   twitterHandle?: string;
+  linkedinUsername?: string;
   portfolioProjects: Project[];
   reputation: ReputationScore;
   isVerified: boolean;
@@ -30,6 +31,7 @@ export interface DeveloperProfile {
   location?: string;
   availableForWork: boolean;
   hourlyRate?: number; // in STX
+  specialties?: string[]; // Add specialties field
 }
 
 export interface Project {
