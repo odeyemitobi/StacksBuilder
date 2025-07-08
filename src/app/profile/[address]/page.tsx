@@ -172,7 +172,7 @@ export default function ProfilePage() {
                     <FiStar className="w-4 h-4 text-stacks-600" />
                     <span className="text-sm">Reputation</span>
                   </div>
-                  <span className="font-semibold">{profile.reputation?.score || 0}</span>
+                  <span className="font-semibold">{profile.reputation?.overall || 0}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -180,7 +180,7 @@ export default function ProfilePage() {
                     <FiUsers className="w-4 h-4 text-bitcoin-600" />
                     <span className="text-sm">Endorsements</span>
                   </div>
-                  <span className="font-semibold">{profile.reputation?.endorsements || 0}</span>
+                  <span className="font-semibold">{profile.reputation?.communityEndorsements || 0}</span>
                 </div>
 
                 <div className="flex items-center justify-between">

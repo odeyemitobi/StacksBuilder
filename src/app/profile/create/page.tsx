@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { FiUser, FiGithub, FiGlobe, FiTwitter, FiLinkedin, FiArrowLeft, FiCheck, FiSave } from 'react-icons/fi';
@@ -40,7 +40,7 @@ const SPECIALTY_OPTIONS = [
   'Developer Tooling'
 ];
 
-export default function CreateProfilePage() {
+function CreateProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
@@ -453,5 +453,21 @@ export default function CreateProfilePage() {
         </Card>
       </div>
     </Section>
+  );
+}
+
+export default function CreateProfilePage() {
+  return (
+    <Suspense fallback={
+      <Section>
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        </div>
+      </Section>
+    }>
+      <CreateProfileContent />
+    </Suspense>
   );
 }

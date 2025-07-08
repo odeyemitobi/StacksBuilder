@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   try {
     const { action, name, value, options } = await request.json();
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
 
     switch (action) {
       case 'set':
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Cookie name required' }, { status: 400 });
     }
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const cookie = cookieStore.get(name);
 
     return NextResponse.json({

@@ -14,15 +14,15 @@ interface ConnectWalletButtonProps {
   className?: string;
 }
 
-export function ConnectWalletButton({ 
-  variant = 'default', 
+export function ConnectWalletButton({
+  variant = 'default',
   size = 'default',
   showText = true,
-  className = '' 
+  className = ''
 }: ConnectWalletButtonProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
-  
+
   const {
     isSignedIn,
     userAddress,
@@ -33,6 +33,11 @@ export function ConnectWalletButton({
   } = useStacksAuth();
 
   const [isConnecting, setIsConnecting] = useState(false);
+
+  // Map variant to Button component variants
+  const buttonVariant = variant === 'default' ? 'primary' : variant;
+  // Map size to Button component sizes
+  const buttonSize = size === 'default' ? 'md' : size;
 
   const handleConnectWallet = async () => {
     setIsConnecting(true);
@@ -60,7 +65,7 @@ export function ConnectWalletButton({
 
   if (isLoading) {
     return (
-      <Button variant={variant} size={size} disabled className={className}>
+      <Button variant={buttonVariant} size={buttonSize} disabled className={className}>
         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
         {showText && <span className="ml-2">Loading...</span>}
       </Button>
@@ -70,8 +75,8 @@ export function ConnectWalletButton({
   if (!isSignedIn) {
     return (
       <Button
-        variant={variant}
-        size={size}
+        variant={buttonVariant}
+        size={buttonSize}
         onClick={handleConnectWallet}
         className={`group ${className}`}
         disabled={isConnecting}
@@ -93,8 +98,8 @@ export function ConnectWalletButton({
   return (
     <div className="relative">
       <Button
-        variant={variant}
-        size={size}
+        variant={buttonVariant}
+        size={buttonSize}
         onClick={() => setShowDropdown(!showDropdown)}
         className={`group ${className}`}
       >
