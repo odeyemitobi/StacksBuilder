@@ -1,13 +1,26 @@
 import { StacksNetwork, StacksTestnet, StacksMainnet } from '@stacks/network';
 import { AppConfig, UserSession, showConnect } from '@stacks/connect';
-import { 
-  stringAsciiCV, 
-  uintCV, 
-  listCV, 
+import {
+  stringAsciiCV,
+  uintCV,
+  listCV,
   tupleCV,
   contractPrincipalCV,
-  standardPrincipalCV 
+  standardPrincipalCV
 } from '@stacks/transactions';
+
+// Wallet types and interfaces
+export interface WalletInfo {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  downloadUrl: string;
+  isInstalled: boolean;
+  connect: () => Promise<void>;
+}
+
+export type SupportedWallet = 'hiro' | 'leather' | 'xverse' | 'asigna';
 
 // Network configuration
 export const getStacksNetwork = (): StacksNetwork => {
@@ -36,19 +49,138 @@ export const getContractConfig = () => {
   return CONTRACT_CONFIG[networkType as keyof typeof CONTRACT_CONFIG];
 };
 
-// Authentication helpers
-export const connectWallet = () => {
-  showConnect({
-    appDetails: {
-      name: 'StacksBuilder',
-      icon: '/logo.png', // Add your logo
+// Wallet detection utilities
+export const detectInstalledWallets = (): SupportedWallet[] => {
+  const installed: SupportedWallet[] = [];
+
+  if (typeof window !== 'undefined') {
+    // Check for Hiro/Stacks Connect (always available)
+    installed.push('hiro');
+
+    // Check for Leather Wallet
+    if (window.LeatherProvider || window.HiroWalletProvider) {
+      installed.push('leather');
+    }
+
+    // Check for Xverse
+    if (window.XverseProviders?.StacksProvider) {
+      installed.push('xverse');
+    }
+
+    // Check for Asigna (usually available as browser extension)
+    if (window.AsignaProvider) {
+      installed.push('asigna');
+    }
+  }
+
+  return installed;
+};
+
+export const getWalletInfo = (walletId: SupportedWallet): WalletInfo => {
+  const walletConfigs: Record<SupportedWallet, Omit<WalletInfo, 'isInstalled' | 'connect'>> = {
+    hiro: {
+      id: 'hiro',
+      name: 'Hiro Wallet',
+      icon: '/wallets/hiro.svg',
+      description: 'The original Stacks wallet with full ecosystem support',
+      downloadUrl: 'https://wallet.hiro.so/',
     },
-    redirectTo: '/',
-    onFinish: () => {
-      window.location.reload();
+    leather: {
+      id: 'leather',
+      name: 'Leather Wallet',
+      icon: '/wallets/leather.svg',
+      description: 'Bitcoin wallet for the rest of us by Trust Machines',
+      downloadUrl: 'https://leather.io/',
     },
-    userSession,
+    xverse: {
+      id: 'xverse',
+      name: 'Xverse',
+      icon: '/wallets/xverse.svg',
+      description: 'The Bitcoin wallet for everyone with Stacks support',
+      downloadUrl: 'https://www.xverse.app/',
+    },
+    asigna: {
+      id: 'asigna',
+      name: 'Asigna',
+      icon: '/wallets/asigna.svg',
+      description: 'Multisig wallet for Bitcoin, Ordinals, and Stacks',
+      downloadUrl: 'https://asigna.io/',
+    },
+  };
+
+  const config = walletConfigs[walletId];
+  const installedWallets = detectInstalledWallets();
+
+  return {
+    ...config,
+    isInstalled: installedWallets.includes(walletId),
+    connect: () => connectSpecificWallet(walletId),
+  };
+};
+
+// Enhanced wallet connection
+export const connectSpecificWallet = async (walletId: SupportedWallet): Promise<void> => {
+  switch (walletId) {
+    case 'hiro':
+    case 'leather':
+      return connectHiroOrLeather();
+    case 'xverse':
+      return connectXverse();
+    case 'asigna':
+      return connectAsigna();
+    default:
+      throw new Error(`Unsupported wallet: ${walletId}`);
+  }
+};
+
+const connectHiroOrLeather = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    showConnect({
+      appDetails: {
+        name: 'StacksBuilder',
+        icon: '/main-logo.png',
+      },
+      redirectTo: '/',
+      onFinish: () => {
+        resolve();
+        window.location.reload();
+      },
+      onCancel: () => {
+        reject(new Error('User cancelled connection'));
+      },
+      userSession,
+    });
   });
+};
+
+const connectXverse = async (): Promise<void> => {
+  if (!window.XverseProviders?.StacksProvider) {
+    throw new Error('Xverse wallet not installed');
+  }
+
+  try {
+    const provider = window.XverseProviders.StacksProvider;
+    await provider.request('stx_requestAccounts', null);
+  } catch (error) {
+    throw new Error('Failed to connect to Xverse wallet');
+  }
+};
+
+const connectAsigna = async (): Promise<void> => {
+  if (!window.AsignaProvider) {
+    throw new Error('Asigna wallet not installed');
+  }
+
+  try {
+    await window.AsignaProvider.connect();
+  } catch (error) {
+    throw new Error('Failed to connect to Asigna wallet');
+  }
+};
+
+// Legacy function for backward compatibility
+export const connectWallet = () => {
+  return connectSpecificWallet('hiro');
 };
 
 export const disconnectWallet = () => {

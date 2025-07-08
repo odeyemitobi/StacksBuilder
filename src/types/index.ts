@@ -1,5 +1,17 @@
 // Core data types for StacksBuilder
 
+// Wallet provider type declarations
+declare global {
+  interface Window {
+    LeatherProvider?: any;
+    HiroWalletProvider?: any;
+    XverseProviders?: {
+      StacksProvider: any;
+    };
+    AsignaProvider?: any;
+  }
+}
+
 export interface DeveloperProfile {
   address: string; // Stacks address as primary key
   bnsName?: string; // Optional .btc domain

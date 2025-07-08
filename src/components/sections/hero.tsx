@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Section } from '@/components/ui/section';
 import { AnimatedBadge } from '@/components/ui/animated-badge';
+import { useStacksAuth } from '@/hooks/useStacks';
 
 // Custom Stacks Icon Component
 const StacksIcon = ({ className }: { className?: string }) => (
@@ -21,6 +22,8 @@ const StacksIcon = ({ className }: { className?: string }) => (
 );
 
 export function Hero() {
+  const { isSignedIn } = useStacksAuth();
+
   return (
     <Section background="default" padding="xl" className="relative overflow-hidden">
       {/* Enhanced Background Elements */}

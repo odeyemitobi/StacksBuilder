@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  userSession, 
-  connectWallet, 
-  disconnectWallet, 
-  isUserSignedIn, 
-  getUserData, 
-  getUserAddress 
+import {
+  userSession,
+  connectWallet,
+  connectSpecificWallet,
+  disconnectWallet,
+  isUserSignedIn,
+  getUserData,
+  getUserAddress,
+  detectInstalledWallets,
+  getWalletInfo,
+  type SupportedWallet
 } from '@/lib/stacks';
 import { DeveloperProfile } from '@/types';
 
@@ -14,6 +18,8 @@ export interface StacksAuthState {
   userData: any | null;
   userAddress: string | null;
   isLoading: boolean;
+  connectedWallet: SupportedWallet | null;
+  installedWallets: SupportedWallet[];
 }
 
 export const useStacksAuth = () => {
@@ -22,18 +28,30 @@ export const useStacksAuth = () => {
     userData: null,
     userAddress: null,
     isLoading: true,
+    connectedWallet: null,
+    installedWallets: [],
   });
 
   const checkAuthState = useCallback(() => {
     const signedIn = isUserSignedIn();
     const userData = getUserData();
     const address = getUserAddress();
+    const installedWallets = detectInstalledWallets();
+
+    // Determine connected wallet type from userData or localStorage
+    let connectedWallet: SupportedWallet | null = null;
+    if (signedIn && userData) {
+      // Try to determine wallet type from user data or stored preference
+      connectedWallet = localStorage.getItem('stacksbuilder-wallet') as SupportedWallet || 'hiro';
+    }
 
     setAuthState({
       isSignedIn: signedIn,
       userData,
       userAddress: address,
       isLoading: false,
+      connectedWallet,
+      installedWallets,
     });
   }, []);
 
@@ -49,17 +67,25 @@ export const useStacksAuth = () => {
     return () => window.removeEventListener('storage', handleAuthChange);
   }, [checkAuthState]);
 
-  const connect = useCallback(() => {
-    connectWallet();
+  const connect = useCallback((walletId?: SupportedWallet) => {
+    if (walletId) {
+      localStorage.setItem('stacksbuilder-wallet', walletId);
+      return connectSpecificWallet(walletId);
+    } else {
+      return connectWallet();
+    }
   }, []);
 
   const disconnect = useCallback(() => {
     disconnectWallet();
+    localStorage.removeItem('stacksbuilder-wallet');
     setAuthState({
       isSignedIn: false,
       userData: null,
       userAddress: null,
       isLoading: false,
+      connectedWallet: null,
+      installedWallets: detectInstalledWallets(),
     });
   }, []);
 
@@ -200,5 +226,53 @@ export const useTransaction = (txId?: string) => {
     isLoading,
     error,
     refetch: () => txId && fetchTransaction(txId),
+  };
+};
+
+// Multi-wallet management hook
+export const useMultiWallet = () => {
+  const [isWalletSelectorOpen, setIsWalletSelectorOpen] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [selectedWallet, setSelectedWallet] = useState<SupportedWallet | null>(null);
+  const { connect, ...authState } = useStacksAuth();
+
+  const openWalletSelector = useCallback(() => {
+    setIsWalletSelectorOpen(true);
+  }, []);
+
+  const closeWalletSelector = useCallback(() => {
+    setIsWalletSelectorOpen(false);
+    setIsConnecting(false);
+    setSelectedWallet(null);
+  }, []);
+
+  const handleWalletSelect = useCallback(async (walletId: SupportedWallet) => {
+    setSelectedWallet(walletId);
+    setIsConnecting(true);
+
+    try {
+      await connect(walletId);
+      closeWalletSelector();
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+      setIsConnecting(false);
+      setSelectedWallet(null);
+    }
+  }, [connect, closeWalletSelector]);
+
+  const getAvailableWallets = useCallback(() => {
+    const supportedWallets: SupportedWallet[] = ['hiro', 'leather', 'xverse', 'asigna'];
+    return supportedWallets.map(walletId => getWalletInfo(walletId));
+  }, []);
+
+  return {
+    ...authState,
+    isWalletSelectorOpen,
+    isConnecting,
+    selectedWallet,
+    openWalletSelector,
+    closeWalletSelector,
+    handleWalletSelect,
+    getAvailableWallets,
   };
 };

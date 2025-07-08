@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { FiMenu, FiX, FiUser, FiLogOut, FiSettings } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStacksAuth } from '@/hooks/useStacks';
+import { useMultiWallet } from '@/hooks/useStacks';
+import { WalletSelector } from '@/components/ui/wallet-selector';
 import { truncateAddress } from '@/lib/stacks';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,19 @@ import { Button } from '@/components/ui/button';
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { isSignedIn, userAddress, connect, disconnect, isLoading } = useStacksAuth();
+  const {
+    isSignedIn,
+    userAddress,
+    connectedWallet,
+    isLoading,
+    isWalletSelectorOpen,
+    isConnecting,
+    selectedWallet,
+    openWalletSelector,
+    closeWalletSelector,
+    handleWalletSelect,
+    disconnect
+  } = useMultiWallet();
 
   const navigation = [
     { name: 'Developers', href: '/developers' },
@@ -130,13 +143,21 @@ export function Header() {
               </div>
             ) : (
               <Button
-                onClick={connect}
+                onClick={openWalletSelector}
                 variant="primary"
                 size="md"
                 animated
+                disabled={isConnecting}
                 className="shadow-md hover:shadow-lg text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2"
               >
-                Connect Wallet
+                {isConnecting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                    <span className="hidden sm:inline">Connecting...</span>
+                  </>
+                ) : (
+                  'Connect Wallet'
+                )}
               </Button>
             )}
 
@@ -183,6 +204,15 @@ export function Header() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Wallet Selector Modal */}
+      <WalletSelector
+        isOpen={isWalletSelectorOpen}
+        onClose={closeWalletSelector}
+        onWalletSelect={handleWalletSelect}
+        isConnecting={isConnecting}
+        selectedWallet={selectedWallet}
+      />
     </motion.header>
   );
 }
