@@ -198,11 +198,11 @@ export function Hero() {
                 }
               }}
             >
-              <Button variant="outline" size="lg" className="text-lg px-8 py-4 group backdrop-blur-sm">
-                <Link href="/developers" className="flex items-center space-x-2">
+              <Button variant="outline" size="lg" className="text-lg px-8 py-4 group backdrop-blur-sm cursor-pointer">
+                <div className="flex items-center space-x-2">
                   <FiPlay className="w-4 h-4" />
-                  <span>Watch Demo</span>
-                </Link>
+                  <span>Coming Soon</span>
+                </div>
               </Button>
             </motion.div>
           </motion.div>

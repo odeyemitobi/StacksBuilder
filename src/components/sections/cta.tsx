@@ -111,23 +111,23 @@ export function CTA({
           {isGradient ? (
             <Button
               size="lg"
-              className="text-lg px-8 py-4 group shadow-lg btn-cta-gradient"
+              className="text-lg px-8 py-4 group shadow-lg btn-cta-gradient cursor-pointer"
             >
-              <Link href={buttonHref} className="flex items-center space-x-2">
-                <span>{buttonText}</span>
+              <div className="flex items-center space-x-2">
+                <span>Coming Soon</span>
                 <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-              </Link>
+              </div>
             </Button>
           ) : (
             <Button
               size="lg"
               variant="primary"
-              className="text-lg px-8 py-4 group shadow-lg"
+              className="text-lg px-8 py-4 group shadow-lg cursor-pointer"
             >
-              <Link href={buttonHref} className="flex items-center space-x-2">
-                <span>{buttonText}</span>
+              <div className="flex items-center space-x-2">
+                <span>Coming Soon</span>
                 <FiArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-              </Link>
+              </div>
             </Button>
           )}
         </motion.div>

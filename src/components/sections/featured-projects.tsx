@@ -70,11 +70,11 @@ export function FeaturedProjects({
           centered={false}
         />
         {showViewAll && (
-          <Button variant="outline" className="hidden md:inline-flex">
-            <Link href="/projects" className="flex items-center space-x-2">
-              <span>View All Projects</span>
+          <Button variant="outline" className="hidden md:inline-flex cursor-pointer">
+            <div className="flex items-center space-x-2">
+              <span>Coming Soon</span>
               <FiArrowRight className="w-4 h-4" />
-            </Link>
+            </div>
           </Button>
         )}
       </div>
@@ -144,10 +144,9 @@ export function FeaturedProjects({
                 by <span className="font-medium text-foreground">{project.author}</span>
               </span>
               <div className="flex space-x-3">
-                <motion.a
-                  href={project.githubUrl}
+                <motion.div
                   className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  title="View on GitHub"
+                  title="Coming Soon"
                   whileHover={{
                     scale: 1.2,
                     rotate: 5
@@ -155,11 +154,10 @@ export function FeaturedProjects({
                   whileTap={{ scale: 0.9 }}
                 >
                   <FiGithub className="w-5 h-5" />
-                </motion.a>
-                <motion.a
-                  href={project.liveUrl}
+                </motion.div>
+                <motion.div
                   className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  title="View live project"
+                  title="Coming Soon"
                   whileHover={{
                     scale: 1.2,
                     rotate: -5
@@ -167,7 +165,7 @@ export function FeaturedProjects({
                   whileTap={{ scale: 0.9 }}
                 >
                   <FiExternalLink className="w-5 h-5" />
-                </motion.a>
+                </motion.div>
               </div>
             </div>
             </Card>
@@ -177,11 +175,11 @@ export function FeaturedProjects({
 
       {showViewAll && (
         <div className="text-center mt-12 md:hidden">
-          <Button variant="outline">
-            <Link href="/projects" className="flex items-center space-x-2">
-              <span>View All Projects</span>
+          <Button variant="outline" className="cursor-pointer">
+            <div className="flex items-center space-x-2">
+              <span>Coming Soon</span>
               <FiArrowRight className="w-4 h-4" />
-            </Link>
+            </div>
           </Button>
         </div>
       )}
