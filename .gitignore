@@ -111,5 +111,7 @@ coverage/
 tmp/
 temp/
 
-setup.md
-COOKIE_IMPLEMENTATION.md
+# Documentation files (except root README.md)
+*.md
+!README.md
+!*/README.md

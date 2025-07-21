@@ -149,23 +149,40 @@ function CreateProfileContent() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // TODO: Implement smart contract call to save/update profile
       console.log(isEditMode ? 'Updated profile data:' : 'Profile data:', formData);
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
       if (userAddress) {
-        // Store the actual profile data
-        ProfileCookies.setProfileData(userAddress, formData);
+        // Import contract functions dynamically
+        const { createProfileOnContract, updateProfileOnContract } = await import('@/lib/contracts');
 
-        // Mark that this user has created a profile using secure cookies (only for create mode)
+        // Prepare contract data
+        const contractData = {
+          displayName: formData.displayName,
+          bio: formData.bio,
+          location: formData.location,
+          website: formData.website,
+          githubUsername: formData.githubUsername,
+          twitterUsername: formData.twitterUsername,
+          linkedinUsername: formData.linkedinUsername,
+          skills: formData.skills,
+          specialties: formData.specialties,
+        };
+
+        // Call the appropriate contract function
+        if (isEditMode) {
+          await updateProfileOnContract(contractData);
+        } else {
+          await createProfileOnContract(contractData);
+        }
+
+        // Also store in cookies as backup
+        ProfileCookies.setProfileData(userAddress, formData);
         if (!isEditMode) {
           ProfileCookies.setProfileCreated(userAddress);
           console.log('Profile creation marked in secure cookie for user:', userAddress);
         }
 
-        console.log('Profile data stored in secure cookie for user:', userAddress);
+        console.log('Profile data stored both on-chain and in secure cookie for user:', userAddress);
       }
 
       // Redirect to profile page
