@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FiArrowRight, FiPlay, FiGithub } from 'react-icons/fi';
@@ -8,7 +9,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Section } from '@/components/ui/section';
 import { AnimatedBadge } from '@/components/ui/animated-badge';
-import { useStacksAuth } from '@/hooks/useStacks';
+import { useStacksAuth, useProfileCheck } from '@/hooks/useStacks';
 import { ProfileCookies, MigrationUtils } from '@/lib/cookies';
 
 // Stacks Icon Component using the PNG image
@@ -24,12 +25,7 @@ const StacksIcon = ({ className }: { className?: string }) => (
 
 export function Hero() {
   const { isSignedIn, userAddress } = useStacksAuth();
-
-  // Run migration and check if user has created a profile using secure cookies
-  const hasCreatedProfile = userAddress ? (() => {
-    MigrationUtils.migrateProfileData(userAddress);
-    return ProfileCookies.hasProfileCreated(userAddress);
-  })() : false;
+  const { hasProfile: hasCreatedProfile, isChecking: isCheckingProfile } = useProfileCheck(userAddress);
 
   return (
     <Section background="default" padding="xl" className="relative overflow-hidden">

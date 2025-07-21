@@ -100,7 +100,7 @@ export const metadata: Metadata = {
     title: 'StacksBuilder - Showcase Your Bitcoin Development Skills',
     description: 'The premier platform for Stacks developers to showcase their work and connect with opportunities.',
     images: ['/og-image.png'],
-    creator: '@stacksbuilder', // Replace with your Twitter handle
+    creator: '@Odeyemitobi95', // Replace with your Twitter handle
   },
   robots: {
     index: true,

@@ -275,6 +275,26 @@ export const formatStxAmount = (amount: number): string => {
   return (amount / 1000000).toFixed(6); // Convert microSTX to STX
 };
 
+// Check if a profile exists on-chain (more reliable than cookies)
+export const checkProfileExists = async (userAddress: string): Promise<boolean> => {
+  try {
+    // First try to read from contract if enabled
+    if (DEV_CONFIG.ENABLE_CONTRACT_CALLS) {
+      const profile = await readProfileFromContract(userAddress);
+      return profile !== null;
+    }
+
+    // Fallback to cookie check in development
+    MigrationUtils.migrateProfileData(userAddress);
+    return ProfileCookies.hasProfileCreated(userAddress);
+  } catch (error) {
+    console.error('Error checking profile existence:', error);
+    // Final fallback to cookie check
+    MigrationUtils.migrateProfileData(userAddress);
+    return ProfileCookies.hasProfileCreated(userAddress);
+  }
+};
+
 // Smart contract read functions
 export const readProfileFromContract = async (userAddress: string) => {
   // Skip contract calls if disabled in development

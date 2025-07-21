@@ -280,3 +280,37 @@ export const useMultiWallet = () => {
     getAvailableWallets,
   };
 };
+
+// Hook to check profile existence across browsers
+export const useProfileCheck = (userAddress: string | null) => {
+  const [hasProfile, setHasProfile] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (!userAddress) {
+        setHasProfile(false);
+        return;
+      }
+
+      setIsChecking(true);
+      try {
+        // Import the function dynamically to avoid circular dependencies
+        const { checkProfileExists } = await import('@/lib/stacks');
+        const exists = await checkProfileExists(userAddress);
+        setHasProfile(exists);
+      } catch (error) {
+        console.error('Error checking profile:', error);
+        // Fallback to cookie check
+        MigrationUtils.migrateProfileData(userAddress);
+        setHasProfile(ProfileCookies.hasProfileCreated(userAddress));
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    checkProfile();
+  }, [userAddress]);
+
+  return { hasProfile, isChecking };
+};
