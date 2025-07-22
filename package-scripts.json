@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "delete-profile": "node scripts/delete-profile-testnet.js",
+    "check-profile": "node -e \"require('./scripts/delete-profile-testnet.js').checkProfileExists(process.argv[1]).then(console.log)\"",
+    "clarinet-console": "cd stacksbuilder-contracts && clarinet console"
+  }
+}

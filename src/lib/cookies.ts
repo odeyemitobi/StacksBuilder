@@ -193,6 +193,66 @@ export const ProfileCookies = {
     const cookieName = `profile_data_${userAddress}`;
     deleteCookie(cookieName);
   },
+
+  /**
+   * Clear profile deletion marker (when profile is recreated) - Legacy cleanup
+   */
+  clearProfileDeletionMarker(userAddress: string): void {
+    if (typeof window === 'undefined') return;
+
+    // Clean up any old deletion markers
+    localStorage.removeItem(`stacksbuilder_profile_deleted_${userAddress}`);
+  },
+
+  /**
+   * Clean up all old deletion markers from localStorage
+   */
+  cleanupOldDeletionMarkers(): void {
+    if (typeof window === 'undefined') return;
+
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('stacksbuilder_profile_deleted_')) {
+        localStorage.removeItem(key);
+        console.log('🧹 Cleaned up old deletion marker:', key);
+      }
+    });
+  },
+
+  /**
+   * Delete all profile data (cookies, localStorage, drafts)
+   */
+  deleteAllProfileData(userAddress: string): void {
+    // Remove profile cookies
+    this.removeProfileCreated(userAddress);
+    this.removeProfileData(userAddress);
+
+    // Clear localStorage data
+    if (typeof window !== 'undefined') {
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('stacksbuilder') && key.includes(userAddress) && !key.includes('deleted')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // Clear form drafts
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('stacksbuilder_profile_') && key.includes(userAddress)) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+
+    // Clear cookies
+    if (typeof document !== 'undefined') {
+      document.cookie.split(";").forEach(cookie => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+        if (name.trim().includes('stacksbuilder') || name.trim().includes(userAddress)) {
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        }
+      });
+    }
+  },
 };
 
 /**

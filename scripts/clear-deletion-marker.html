@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Profile Deletion Marker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear Profile Deletion Marker</h1>
+        <p>This tool clears the local deletion marker that's preventing your profile from being displayed.</p>
+        
+        <div class="info">
+            <strong>Your Address:</strong> ST37TKJWKMEXTCGPD3FFZS4QCF1V7QEM1P7WY0R8B
+        </div>
+
+        <button onclick="clearDeletionMarker()">Clear Deletion Marker</button>
+        <button onclick="checkStatus()">Check Current Status</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const userAddress = 'ST37TKJWKMEXTCGPD3FFZS4QCF1V7QEM1P7WY0R8B';
+        const deletionKey = `stacksbuilder_profile_deleted_${userAddress}`;
+
+        function clearDeletionMarker() {
+            try {
+                // Remove the deletion marker
+                localStorage.removeItem(deletionKey);
+                
+                // Also clear any other related markers
+                localStorage.removeItem(`stacksbuilder_profile_created_${userAddress}`);
+                
+                document.getElementById('result').innerHTML = `
+                    <div class="success">
+                        <strong>✅ Success!</strong><br>
+                        Deletion marker cleared for address: ${userAddress}<br><br>
+                        <strong>Next steps:</strong><br>
+                        1. Go to your profile page: <a href="http://localhost:3000/profile/${userAddress}" target="_blank">View Profile</a><br>
+                        2. Refresh the page if it's already open<br>
+                        3. Your profile should now display correctly!
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div style="background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <strong>❌ Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function checkStatus() {
+            const isDeleted = localStorage.getItem(deletionKey) === 'true';
+            const hasCreated = localStorage.getItem(`stacksbuilder_profile_created_${userAddress}`) === 'true';
+            
+            document.getElementById('result').innerHTML = `
+                <div class="info">
+                    <strong>📊 Current Status:</strong><br>
+                    Profile marked as deleted: ${isDeleted ? '❌ YES' : '✅ NO'}<br>
+                    Profile marked as created: ${hasCreated ? '✅ YES' : '❌ NO'}<br><br>
+                    ${isDeleted ? '<strong>⚠️ Deletion marker found - this is why your profile isn\'t showing!</strong>' : '<strong>✅ No deletion marker found</strong>'}
+                </div>
+            `;
+        }
+
+        // Check status on page load
+        window.addEventListener('load', checkStatus);
+    </script>
+</body>
+</html>

@@ -44,6 +44,21 @@ const nextConfig = {
       };
     }
 
+    // Improve chunk loading reliability
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        ...config.optimization.splitChunks,
+        cacheGroups: {
+          ...config.optimization.splitChunks?.cacheGroups,
+          default: {
+            ...config.optimization.splitChunks?.cacheGroups?.default,
+            reuseExistingChunk: true,
+          },
+        },
+      },
+    };
+
     return config;
   },
   // Environment variables

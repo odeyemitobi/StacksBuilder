@@ -9,6 +9,23 @@ import { Card } from '@/components/ui/card';
 import { Section } from '@/components/ui/section';
 import { useStacksAuth, useProfile } from '@/hooks/useStacks';
 import { CreateProfileForm } from '@/types';
+import {
+  processSocialMediaInputs,
+  validateFieldLength,
+  extractGitHubUsername,
+  extractTwitterUsername,
+  extractLinkedInUsername,
+  cleanWebsiteUrl
+} from '@/lib/urlUtils';
+
+import {
+  saveFormDraft,
+  loadFormDraft,
+  clearFormDraft,
+  hasSavedDraft,
+  getDraftTimestamp,
+  debouncedSaveFormDraft
+} from '@/lib/formPersistence';
 import { ProfileCookies, MigrationUtils } from '@/lib/cookies';
 import Link from 'next/link';
 
@@ -48,6 +65,10 @@ function CreateProfileContent() {
   const { profile, isLoading: profileLoading } = useProfile(isEditMode && userAddress ? userAddress : '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  const [showDraftRestorePrompt, setShowDraftRestorePrompt] = useState(false);
+  const [draftTimestamp, setDraftTimestamp] = useState<Date | null>(null);
   
   const [formData, setFormData] = useState<CreateProfileForm>({
     displayName: '',
@@ -61,12 +82,27 @@ function CreateProfileContent() {
     specialties: []
   });
 
+
+
   // Run migration from localStorage to cookies on component mount
   useEffect(() => {
     if (userAddress) {
       MigrationUtils.migrateProfileData(userAddress);
     }
   }, [userAddress]);
+
+  // Check for saved draft when component mounts
+  useEffect(() => {
+    if (userAddress && !isEditMode) {
+      const savedDraft = loadFormDraft(userAddress);
+      const timestamp = getDraftTimestamp(userAddress);
+
+      if (savedDraft && timestamp) {
+        setDraftTimestamp(timestamp);
+        setShowDraftRestorePrompt(true);
+      }
+    }
+  }, [userAddress, isEditMode]);
 
   // Populate form with existing profile data when in edit mode
   useEffect(() => {
@@ -134,16 +170,73 @@ function CreateProfileContent() {
   }
 
   const handleInputChange = (field: keyof CreateProfileForm, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let processedValue = value;
+
+    // Process social media URLs to extract usernames
+    switch (field) {
+      case 'githubUsername':
+        processedValue = extractGitHubUsername(value);
+        break;
+      case 'twitterUsername':
+        processedValue = extractTwitterUsername(value);
+        break;
+      case 'linkedinUsername':
+        processedValue = extractLinkedInUsername(value);
+        break;
+      case 'website':
+        processedValue = cleanWebsiteUrl(value);
+        break;
+    }
+
+    // Validate field length based on contract constraints
+    const fieldLimits: Record<string, number> = {
+      displayName: 50,
+      bio: 500,
+      location: 100,
+      website: 200,
+      githubUsername: 50,
+      twitterUsername: 50,
+      linkedinUsername: 50
+    };
+
+    const maxLength = fieldLimits[field];
+    if (maxLength) {
+      const validation = validateFieldLength(processedValue, maxLength, field);
+
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: validation.error || ''
+      }));
+
+      // Don't update if validation fails
+      if (!validation.isValid) {
+        return;
+      }
+    }
+
+    const updatedFormData = { ...formData, [field]: processedValue };
+    setFormData(updatedFormData);
+
+    // Auto-save form data (debounced to avoid excessive saves)
+    if (userAddress && !isEditMode) {
+      debouncedSaveFormDraft(updatedFormData, userAddress);
+    }
   };
 
   const handleSkillToggle = (skill: string, type: 'skills' | 'specialties') => {
-    setFormData(prev => ({
-      ...prev,
-      [type]: prev[type].includes(skill)
-        ? prev[type].filter(s => s !== skill)
-        : [...prev[type], skill]
-    }));
+    const updatedFormData = {
+      ...formData,
+      [type]: formData[type].includes(skill)
+        ? formData[type].filter(s => s !== skill)
+        : [...formData[type], skill]
+    };
+
+    setFormData(updatedFormData);
+
+    // Auto-save form data
+    if (userAddress && !isEditMode) {
+      debouncedSaveFormDraft(updatedFormData, userAddress);
+    }
   };
 
   const handleSubmit = async () => {
@@ -154,18 +247,76 @@ function CreateProfileContent() {
       if (userAddress) {
         // Import contract functions dynamically
         const { createProfileOnContract, updateProfileOnContract } = await import('@/lib/contracts');
+        const { verifyWalletConsistency, forceSetWallet } = await import('@/lib/stacks');
+
+        // Check wallet consistency and fix if needed
+        const walletCheck = verifyWalletConsistency();
+        console.log('🔍 Pre-creation wallet check:', walletCheck);
+
+        if (!walletCheck.isConsistent) {
+          // Ask user which wallet they're using
+          const walletChoice = confirm(
+            `Wallet detection issue: ${walletCheck.message}\n\n` +
+            `Are you using Leather wallet? Click OK for Leather, Cancel for Hiro/other.`
+          );
+
+          if (walletChoice) {
+            console.log('🔧 User confirmed Leather wallet, forcing wallet setting');
+            forceSetWallet('leather');
+          } else {
+            console.log('🔧 User indicated non-Leather wallet, using Hiro');
+            forceSetWallet('hiro');
+          }
+        }
+
+        // Process all social media inputs to ensure they're properly formatted
+        const processedData = processSocialMediaInputs(formData);
+
+        // Validate all fields before submission
+        const validationErrors: string[] = [];
+
+        // Check required fields
+        if (!processedData.displayName.trim()) {
+          validationErrors.push('Display name is required');
+        }
+        if (!processedData.bio.trim()) {
+          validationErrors.push('Bio is required');
+        }
+
+        // Check field lengths
+        const fieldLimits = {
+          displayName: 50,
+          bio: 500,
+          location: 100,
+          website: 200,
+          githubUsername: 50,
+          twitterUsername: 50,
+          linkedinUsername: 50
+        };
+
+        Object.entries(fieldLimits).forEach(([field, limit]) => {
+          const value = processedData[field as keyof typeof processedData] as string;
+          if (value && value.length > limit) {
+            validationErrors.push(`${field} must be ${limit} characters or less`);
+          }
+        });
+
+        if (validationErrors.length > 0) {
+          alert('Please fix the following errors:\n' + validationErrors.join('\n'));
+          return;
+        }
 
         // Prepare contract data
         const contractData = {
-          displayName: formData.displayName,
-          bio: formData.bio,
-          location: formData.location,
-          website: formData.website,
-          githubUsername: formData.githubUsername,
-          twitterUsername: formData.twitterUsername,
-          linkedinUsername: formData.linkedinUsername,
-          skills: formData.skills,
-          specialties: formData.specialties,
+          displayName: processedData.displayName,
+          bio: processedData.bio,
+          location: processedData.location,
+          website: processedData.website,
+          githubUsername: processedData.githubUsername,
+          twitterUsername: processedData.twitterUsername,
+          linkedinUsername: processedData.linkedinUsername,
+          skills: processedData.skills,
+          specialties: processedData.specialties,
         };
 
         // Call the appropriate contract function
@@ -175,7 +326,8 @@ function CreateProfileContent() {
           await createProfileOnContract(contractData);
         }
 
-        // Also store in cookies as backup
+        // Clear any deletion markers and store profile data
+        ProfileCookies.clearProfileDeletionMarker(userAddress);
         ProfileCookies.setProfileData(userAddress, formData);
         if (!isEditMode) {
           ProfileCookies.setProfileCreated(userAddress);
@@ -183,15 +335,40 @@ function CreateProfileContent() {
         }
 
         console.log('Profile data stored both on-chain and in secure cookie for user:', userAddress);
+
+        // Clear the saved draft since profile was successfully created
+        clearFormDraft(userAddress);
       }
 
-      // Redirect to profile page
-      router.push(`/profile/${userAddress}`);
+      // Show success message and redirect after a delay to allow blockchain confirmation
+      alert(isEditMode ? 'Profile updated successfully!' : 'Profile created successfully! Redirecting to your profile...');
+
+      // Wait a bit for the transaction to be processed before redirecting
+      setTimeout(() => {
+        router.push(`/profile/${userAddress}`);
+      }, 2000);
     } catch (error) {
       console.error(`Failed to ${isEditMode ? 'update' : 'create'} profile:`, error);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleRestoreDraft = () => {
+    if (userAddress) {
+      const savedDraft = loadFormDraft(userAddress);
+      if (savedDraft) {
+        setFormData(savedDraft);
+        setShowDraftRestorePrompt(false);
+      }
+    }
+  };
+
+  const handleDiscardDraft = () => {
+    if (userAddress) {
+      clearFormDraft(userAddress);
+    }
+    setShowDraftRestorePrompt(false);
   };
 
   const isStepValid = () => {
@@ -214,6 +391,45 @@ function CreateProfileContent() {
           <div className="w-8 h-8 border-2 border-foreground border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading...</p>
         </div>
+      </Section>
+    );
+  }
+
+  // Show draft restoration prompt
+  if (showDraftRestorePrompt && draftTimestamp) {
+    return (
+      <Section className="min-h-screen flex items-center justify-center">
+        <Card className="p-8 max-w-md">
+          <div className="text-center mb-6">
+            <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
+              <FiSave className="w-6 h-6 text-foreground" />
+            </div>
+            <h2 className="text-2xl font-bold mb-3">Restore Progress</h2>
+            <p className="text-muted-foreground">
+              We found a saved draft from {draftTimestamp.toLocaleDateString()} at{' '}
+              {draftTimestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
+              Would you like to continue where you left off?
+            </p>
+          </div>
+
+          <div className="flex space-x-3">
+            <Button
+              onClick={handleRestoreDraft}
+              variant="primary"
+              className="flex-1"
+              animated
+            >
+              Restore Progress
+            </Button>
+            <Button
+              onClick={handleDiscardDraft}
+              variant="outline"
+              className="flex-1"
+            >
+              Start Fresh
+            </Button>
+          </div>
+        </Card>
       </Section>
     );
   }
@@ -281,8 +497,15 @@ function CreateProfileContent() {
                       value={formData.displayName}
                       onChange={(e) => handleInputChange('displayName', e.target.value)}
                       placeholder="Your name or handle"
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-foreground"
+                      className={`w-full px-3 py-2 border rounded-lg bg-background focus:outline-none focus:ring-2 ${
+                        validationErrors.displayName
+                          ? 'border-red-500 focus:ring-red-500'
+                          : 'border-border focus:ring-foreground'
+                      }`}
                     />
+                    {validationErrors.displayName && (
+                      <p className="text-red-500 text-sm mt-1">{validationErrors.displayName}</p>
+                    )}
                   </div>
 
                   <div>
@@ -395,35 +618,62 @@ function CreateProfileContent() {
 
                   <div className="flex items-center space-x-3">
                     <FiGithub className="w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="text"
-                      value={formData.githubUsername}
-                      onChange={(e) => handleInputChange('githubUsername', e.target.value)}
-                      placeholder="github-username"
-                      className="flex-1 px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-foreground"
-                    />
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={formData.githubUsername}
+                        onChange={(e) => handleInputChange('githubUsername', e.target.value)}
+                        placeholder="username or https://github.com/username"
+                        className={`w-full px-3 py-2 border rounded-lg bg-background focus:outline-none focus:ring-2 ${
+                          validationErrors.githubUsername
+                            ? 'border-red-500 focus:ring-red-500'
+                            : 'border-border focus:ring-foreground'
+                        }`}
+                      />
+                      {validationErrors.githubUsername && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.githubUsername}</p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
                     <FiTwitter className="w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="text"
-                      value={formData.twitterUsername}
-                      onChange={(e) => handleInputChange('twitterUsername', e.target.value)}
-                      placeholder="twitter-handle"
-                      className="flex-1 px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-foreground"
-                    />
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={formData.twitterUsername}
+                        onChange={(e) => handleInputChange('twitterUsername', e.target.value)}
+                        placeholder="@username or https://twitter.com/username"
+                        className={`w-full px-3 py-2 border rounded-lg bg-background focus:outline-none focus:ring-2 ${
+                          validationErrors.twitterUsername
+                            ? 'border-red-500 focus:ring-red-500'
+                            : 'border-border focus:ring-foreground'
+                        }`}
+                      />
+                      {validationErrors.twitterUsername && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.twitterUsername}</p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
                     <FiLinkedin className="w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="text"
-                      value={formData.linkedinUsername}
-                      onChange={(e) => handleInputChange('linkedinUsername', e.target.value)}
-                      placeholder="linkedin-username"
-                      className="flex-1 px-3 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-foreground"
-                    />
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={formData.linkedinUsername}
+                        onChange={(e) => handleInputChange('linkedinUsername', e.target.value)}
+                        placeholder="username or https://linkedin.com/in/username"
+                        className={`w-full px-3 py-2 border rounded-lg bg-background focus:outline-none focus:ring-2 ${
+                          validationErrors.linkedinUsername
+                            ? 'border-red-500 focus:ring-red-500'
+                            : 'border-border focus:ring-foreground'
+                        }`}
+                      />
+                      {validationErrors.linkedinUsername && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.linkedinUsername}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

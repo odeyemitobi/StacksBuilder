@@ -13,7 +13,7 @@ import {
   type SupportedWallet
 } from '@/lib/stacks';
 import { DeveloperProfile } from '@/types';
-import { WalletCookies, MigrationUtils } from '@/lib/cookies';
+import { WalletCookies, MigrationUtils, ProfileCookies } from '@/lib/cookies';
 
 export interface StacksAuthState {
   isSignedIn: boolean;
@@ -43,6 +43,9 @@ export const useStacksAuth = () => {
     // Run migration from localStorage to cookies
     MigrationUtils.migrateWalletPreference();
 
+    // Clean up old deletion markers
+    ProfileCookies.cleanupOldDeletionMarkers();
+
     // Determine connected wallet type from userData or secure cookies
     let connectedWallet: SupportedWallet | null = null;
     if (signedIn && userData) {
@@ -62,14 +65,30 @@ export const useStacksAuth = () => {
 
   useEffect(() => {
     checkAuthState();
-    
+
     // Listen for auth state changes
     const handleAuthChange = () => {
       setTimeout(checkAuthState, 100); // Small delay to ensure state is updated
     };
 
+    // Listen for wallet connection/disconnection events
+    const handleWalletConnected = () => {
+      setTimeout(checkAuthState, 200); // Slightly longer delay for wallet events
+    };
+
+    const handleWalletDisconnected = () => {
+      setTimeout(checkAuthState, 100);
+    };
+
     window.addEventListener('storage', handleAuthChange);
-    return () => window.removeEventListener('storage', handleAuthChange);
+    window.addEventListener('wallet-connected', handleWalletConnected);
+    window.addEventListener('wallet-disconnected', handleWalletDisconnected);
+
+    return () => {
+      window.removeEventListener('storage', handleAuthChange);
+      window.removeEventListener('wallet-connected', handleWalletConnected);
+      window.removeEventListener('wallet-disconnected', handleWalletDisconnected);
+    };
   }, [checkAuthState]);
 
   const connect = useCallback((walletId?: SupportedWallet) => {
@@ -285,6 +304,11 @@ export const useMultiWallet = () => {
 export const useProfileCheck = (userAddress: string | null) => {
   const [hasProfile, setHasProfile] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const refreshProfileCheck = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   useEffect(() => {
     const checkProfile = async () => {
@@ -310,7 +334,7 @@ export const useProfileCheck = (userAddress: string | null) => {
     };
 
     checkProfile();
-  }, [userAddress]);
+  }, [userAddress, refreshTrigger]);
 
-  return { hasProfile, isChecking };
+  return { hasProfile, isChecking, refreshProfileCheck };
 };

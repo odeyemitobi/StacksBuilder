@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from '@/components/providers';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 const lato = localFont({
   src: [
@@ -129,11 +130,13 @@ export default function RootLayout({
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className={`${lato.className} h-full flex flex-col`} suppressHydrationWarning>
         <Providers>
-          <Header />
-          <main className="flex-1 pt-16">
-            {children}
-          </main>
-          <Footer />
+          <ErrorBoundary>
+            <Header />
+            <main className="flex-1 pt-16">
+              {children}
+            </main>
+            <Footer />
+          </ErrorBoundary>
         </Providers>
       </body>
     </html>
