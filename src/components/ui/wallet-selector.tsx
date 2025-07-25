@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import React from 'react';
 import { FiX, FiCheck, FiExternalLink, FiCreditCard } from 'react-icons/fi';
 import { Button } from './button';
 import { Card } from './card';
-import { getWalletInfo, detectInstalledWallets, type SupportedWallet, type WalletInfo } from '@/lib/stacks';
+import { getWalletInfo, type SupportedWallet, type WalletInfo } from '@/lib/stacks';
 
 interface WalletSelectorProps {
   isOpen: boolean;
@@ -21,10 +21,7 @@ export function WalletSelector({
   isConnecting = false,
   selectedWallet
 }: WalletSelectorProps) {
-  const [hoveredWallet, setHoveredWallet] = useState<SupportedWallet | null>(null);
-
   const supportedWallets: SupportedWallet[] = ['hiro', 'leather', 'xverse', 'asigna'];
-  const installedWallets = detectInstalledWallets();
 
   const handleWalletClick = (walletId: SupportedWallet, walletInfo: WalletInfo) => {
     if (!walletInfo.isInstalled) {

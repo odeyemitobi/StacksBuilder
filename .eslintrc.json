@@ -1,0 +1,30 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript"
+  ],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-explicit-any": "warn",
+    "prefer-const": "warn",
+    "no-var": "error",
+    "no-console": "off",
+    "react/react-in-jsx-scope": "off",
+    "react/prop-types": "off",
+    "react/no-unescaped-entities": "off"
+  },
+  "ignorePatterns": [
+    "node_modules/**",
+    ".next/**",
+    "out/**",
+    "build/**",
+    "dist/**",
+    "**/*.d.ts",
+    "stacksbuilder-contracts/**",
+    "contracts/**",
+    "deployments/**",
+    "settings/**",
+    "scripts/**",
+    "public/**"
+  ]
+}

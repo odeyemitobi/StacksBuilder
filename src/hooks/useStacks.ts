@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  userSession,
   connectWallet,
   connectSpecificWallet,
   disconnectWallet,
@@ -10,14 +9,15 @@ import {
   detectInstalledWallets,
   getWalletInfo,
   readProfileFromContract,
+  getSessionWallet,
   type SupportedWallet
 } from '@/lib/stacks';
-import { DeveloperProfile } from '@/types';
+import { DeveloperProfile, StacksUserData } from '@/types';
 import { WalletCookies, MigrationUtils, ProfileCookies } from '@/lib/cookies';
 
 export interface StacksAuthState {
   isSignedIn: boolean;
-  userData: any | null;
+  userData: StacksUserData | null;
   userAddress: string | null;
   isLoading: boolean;
   connectedWallet: SupportedWallet | null;
@@ -46,11 +46,12 @@ export const useStacksAuth = () => {
     // Clean up old deletion markers
     ProfileCookies.cleanupOldDeletionMarkers();
 
-    // Determine connected wallet type from userData or secure cookies
+    // Get the connected wallet using the enhanced tracking system
     let connectedWallet: SupportedWallet | null = null;
     if (signedIn && userData) {
-      // Try to determine wallet type from user data or stored preference in cookies
-      connectedWallet = WalletCookies.getWalletPreference() as SupportedWallet || 'hiro';
+      // Use the enhanced wallet tracking system
+      connectedWallet = getSessionWallet();
+      console.log('🔍 Session wallet from enhanced tracking:', connectedWallet);
     }
 
     setAuthState({
@@ -73,21 +74,30 @@ export const useStacksAuth = () => {
 
     // Listen for wallet connection/disconnection events
     const handleWalletConnected = () => {
+      console.log('🔄 Wallet connected event received, refreshing auth state...');
       setTimeout(checkAuthState, 200); // Slightly longer delay for wallet events
     };
 
     const handleWalletDisconnected = () => {
+      console.log('🔄 Wallet disconnected event received, refreshing auth state...');
+      setTimeout(checkAuthState, 100);
+    };
+
+    const handleWalletStateRefreshed = () => {
+      console.log('🔄 Wallet state refreshed event received, updating auth state...');
       setTimeout(checkAuthState, 100);
     };
 
     window.addEventListener('storage', handleAuthChange);
     window.addEventListener('wallet-connected', handleWalletConnected);
     window.addEventListener('wallet-disconnected', handleWalletDisconnected);
+    window.addEventListener('wallet-state-refreshed', handleWalletStateRefreshed);
 
     return () => {
       window.removeEventListener('storage', handleAuthChange);
       window.removeEventListener('wallet-connected', handleWalletConnected);
       window.removeEventListener('wallet-disconnected', handleWalletDisconnected);
+      window.removeEventListener('wallet-state-refreshed', handleWalletStateRefreshed);
     };
   }, [checkAuthState]);
 
@@ -166,7 +176,7 @@ export const useContractCall = () => {
     contractAddress: string,
     contractName: string,
     functionName: string,
-    functionArgs: any[],
+    functionArgs: (string | import('@stacks/transactions').ClarityValue)[],
     onSuccess?: (txId: string) => void,
     onError?: (error: string) => void
   ) => {
@@ -214,7 +224,7 @@ export const useContractCall = () => {
 };
 
 export const useTransaction = (txId?: string) => {
-  const [transaction, setTransaction] = useState<any>(null);
+  const [transaction, setTransaction] = useState<Record<string, unknown> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

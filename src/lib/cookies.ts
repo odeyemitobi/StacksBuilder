@@ -76,8 +76,8 @@ export function getCookie(name: string): string | null {
   const nameEQ = encodeURIComponent(name) + '=';
   const cookies = document.cookie.split(';');
 
-  for (let cookie of cookies) {
-    let c = cookie.trim();
+  for (const cookie of cookies) {
+    const c = cookie.trim();
     if (c.indexOf(nameEQ) === 0) {
       return decodeURIComponent(c.substring(nameEQ.length));
     }
@@ -164,7 +164,7 @@ export const ProfileCookies = {
   /**
    * Store profile data
    */
-  setProfileData(userAddress: string, profileData: any): void {
+  setProfileData(userAddress: string, profileData: Record<string, unknown>): void {
     const cookieName = `profile_data_${userAddress}`;
     setCookie(cookieName, JSON.stringify(profileData), COOKIE_OPTIONS.PROFILE_TRACKING);
   },
@@ -172,12 +172,12 @@ export const ProfileCookies = {
   /**
    * Get stored profile data
    */
-  getProfileData(userAddress: string): any | null {
+  getProfileData(userAddress: string): Record<string, unknown> | null {
     const cookieName = `profile_data_${userAddress}`;
     const data = getCookie(cookieName);
     if (data) {
       try {
-        return JSON.parse(data);
+        return JSON.parse(data) as Record<string, unknown>;
       } catch (error) {
         console.error('Error parsing profile data:', error);
         return null;

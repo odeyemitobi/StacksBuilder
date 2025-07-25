@@ -1,21 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { FiMapPin, FiGlobe, FiGithub, FiTwitter, FiLinkedin, FiEdit, FiStar, FiUsers, FiCode, FiTrash2, FiCheck } from 'react-icons/fi';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Section } from '@/components/ui/section';
 import { useStacksAuth, useProfile } from '@/hooks/useStacks';
-import { DeveloperProfile } from '@/types';
 import { ProfileCookies } from '@/lib/cookies';
 import { ErrorBoundary } from '@/components/error-boundary';
 import Link from 'next/link';
 
 export default function ProfilePage() {
   const params = useParams();
-  const address = params.address as string;
+  const address = params?.address as string;
   const { userAddress } = useStacksAuth();
   const { profile, isLoading, error } = useProfile(address);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -76,7 +74,7 @@ export default function ProfilePage() {
   };
 
   // Helper function to safely render profile data
-  const safeRender = (value: any, fallback: string = ''): string => {
+  const safeRender = (value: unknown, fallback: string = ''): string => {
     if (value === null || value === undefined) return fallback;
     if (typeof value === 'string') return value || fallback;
     if (typeof value === 'number') return String(value);
@@ -84,7 +82,7 @@ export default function ProfilePage() {
     if (Array.isArray(value)) return value.join(', ');
     if (typeof value === 'object') {
       // If it's an object with a value property, extract it
-      if (value.value !== undefined) return safeRender(value.value, fallback);
+      if (value && 'value' in value) return safeRender(value.value, fallback);
       // Otherwise, try to stringify it safely
       try {
         return JSON.stringify(value);
@@ -104,36 +102,24 @@ export default function ProfilePage() {
 
       // Import the contract deletion function and utilities
       const { deleteProfileOnContract } = await import('@/lib/contracts');
-      const { DEV_CONFIG, verifyWalletConsistency, forceSetWallet } = await import('@/lib/stacks');
+      const { DEV_CONFIG, ensureWalletConsistency, isUserSignedIn } = await import('@/lib/stacks');
 
       // Delete from blockchain first - the contract is deployed and working
       if (DEV_CONFIG.ENABLE_CONTRACT_CALLS) {
         console.log('🔗 Deleting profile from blockchain...');
 
         // Check if user is signed in first
-        const { isUserSignedIn } = await import('@/lib/stacks');
         if (!isUserSignedIn()) {
           throw new Error('User is not signed in. Please sign in with your wallet and try again.');
         }
 
-        // Check wallet consistency and offer to fix it if needed
-        const walletCheck = verifyWalletConsistency();
-        console.log('🔍 Pre-deletion wallet check:', walletCheck);
-
-        if (!walletCheck.isConsistent) {
-          // Ask user which wallet they're using
-          const walletChoice = confirm(
-            `Wallet detection issue: ${walletCheck.message}\n\n` +
-            `Are you using Leather wallet? Click OK for Leather, Cancel for Hiro/other.`
-          );
-
-          if (walletChoice) {
-            console.log('🔧 User confirmed Leather wallet, forcing wallet setting');
-            forceSetWallet('leather');
-          } else {
-            console.log('🔧 User indicated non-Leather wallet, using Hiro');
-            forceSetWallet('hiro');
-          }
+        // Ensure wallet consistency - this will throw an error if wallet is not consistent
+        try {
+          const sessionWallet = ensureWalletConsistency();
+          console.log('✅ Wallet consistency verified for profile deletion:', sessionWallet);
+        } catch (error) {
+          console.error('❌ Wallet consistency error:', error);
+          throw new Error('Wallet connection issue. Please reconnect your wallet and try again.');
         }
 
         await deleteProfileOnContract();
@@ -164,8 +150,7 @@ export default function ProfilePage() {
 
       // Show the error message to the user
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(errorMessage);
-
+      setDeletionMessage(errorMessage);
       setShowDeleteConfirm(false);
     } finally {
       setIsDeleting(false);
@@ -335,11 +320,11 @@ export default function ProfilePage() {
                 ))}
               </div>
               
-              {(profile as any).specialties && (profile as any).specialties.length > 0 && (
+              {profile && 'specialties' in profile && Array.isArray(profile.specialties) && profile.specialties.length > 0 && (
                 <>
                   <h3 className="text-md font-medium mt-6 mb-3">Stacks Specialties</h3>
                   <div className="space-y-2">
-                    {((profile as any).specialties || []).map((specialty: string, index: number) => (
+                    {(profile.specialties || []).map((specialty: string, index: number) => (
                       <div
                         key={index}
                         className="px-3 py-1 bg-stacks-600/10 text-stacks-600 rounded-full text-sm"

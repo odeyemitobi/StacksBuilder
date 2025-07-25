@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { FiArrowRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { Section } from '@/components/ui/section';
 import { Button } from '@/components/ui/button';
 import { useStacksAuth, useProfileCheck } from '@/hooks/useStacks';
-import { ProfileCookies, MigrationUtils } from '@/lib/cookies';
+// Removed unused imports
 
 interface CTAProps {
   title?: string;
@@ -25,7 +25,7 @@ export function CTA({
   background = "gradient-stacks"
 }: CTAProps) {
   const { isSignedIn, userAddress } = useStacksAuth();
-  const { hasProfile: hasCreatedProfile, isChecking: isCheckingProfile } = useProfileCheck(userAddress);
+  const { hasProfile: hasCreatedProfile } = useProfileCheck(userAddress);
 
   const isGradient = background.includes('gradient');
   // Proper text colors for both light and dark modes

@@ -33,7 +33,7 @@ export function extractGitHubUsername(input: string): string {
     }
     
     return cleaned;
-  } catch (error) {
+  } catch {
     return cleaned;
   }
 }
@@ -69,7 +69,7 @@ export function extractTwitterUsername(input: string): string {
     }
     
     return cleaned;
-  } catch (error) {
+  } catch {
     return cleaned;
   }
 }
@@ -106,7 +106,7 @@ export function extractLinkedInUsername(input: string): string {
     }
     
     return cleaned;
-  } catch (error) {
+  } catch {
     return cleaned;
   }
 }
@@ -169,12 +169,17 @@ export function validateFieldLength(value: string, maxLength: number, fieldName:
  * @param formData - Form data object
  * @returns Processed form data with extracted usernames
  */
-export function processSocialMediaInputs(formData: any) {
+export function processSocialMediaInputs<T extends Record<string, unknown>>(formData: T): T & {
+  githubUsername: string;
+  twitterUsername: string;
+  linkedinUsername: string;
+  website: string;
+} {
   return {
     ...formData,
-    githubUsername: extractGitHubUsername(formData.githubUsername),
-    twitterUsername: extractTwitterUsername(formData.twitterUsername),
-    linkedinUsername: extractLinkedInUsername(formData.linkedinUsername),
-    website: cleanWebsiteUrl(formData.website)
+    githubUsername: extractGitHubUsername(formData.githubUsername as string),
+    twitterUsername: extractTwitterUsername(formData.twitterUsername as string),
+    linkedinUsername: extractLinkedInUsername(formData.linkedinUsername as string),
+    website: cleanWebsiteUrl(formData.website as string)
   };
 }

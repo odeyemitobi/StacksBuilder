@@ -2,21 +2,14 @@ import { StacksNetwork, StacksTestnet, StacksMainnet } from '@stacks/network';
 import { AppConfig, UserSession, showConnect } from '@stacks/connect';
 import {
   stringAsciiCV,
-  uintCV,
-  listCV,
-  tupleCV,
-  contractPrincipalCV,
-  standardPrincipalCV,
-  callReadOnlyFunction,
-  cvToValue
+  listCV
 } from '@stacks/transactions';
 import { ProfileCookies, MigrationUtils } from './cookies';
 import {
   checkProfileExists as contractCheckProfileExists,
-  getProfileFromContract as contractGetProfile,
-  createProfileOnContract,
-  updateProfileOnContract
+  getProfileFromContract as contractGetProfile
 } from './contracts';
+import { DeveloperProfile } from '@/types';
 
 // Wallet types and interfaces
 export interface WalletInfo {
@@ -44,26 +37,47 @@ export const userSession = new UserSession({ appConfig });
 // Track which wallet is currently connected
 let connectedWallet: SupportedWallet | null = null;
 
+// Prevent multiple wallet connection attempts
+let isConnecting = false;
+
+// Store the wallet that was used for authentication
+// This ensures we use the same wallet for all operations
 export const setConnectedWallet = (wallet: SupportedWallet) => {
   connectedWallet = wallet;
   if (typeof window !== 'undefined') {
+    // Store in localStorage for persistence across page refreshes
     localStorage.setItem('stacksbuilder_connected_wallet', wallet);
+    // Also store in sessionStorage to ensure it's available in the current session
+    sessionStorage.setItem('stacksbuilder_session_wallet', wallet);
+    console.log(`🔐 Wallet set for session: ${wallet}`);
   }
 };
 
 export const getConnectedWallet = (): SupportedWallet | null => {
+  // First check memory variable for fastest access
   if (connectedWallet) return connectedWallet;
 
-  // If user is signed in, check localStorage for the stored wallet
+  // If user is signed in, try multiple sources to determine the wallet
   if (typeof window !== 'undefined' && isUserSignedIn()) {
-    const stored = localStorage.getItem('stacksbuilder_connected_wallet');
-    if (stored && ['hiro', 'leather', 'xverse', 'asigna'].includes(stored)) {
-      connectedWallet = stored as SupportedWallet;
-      console.log(`🔍 Retrieved stored wallet: ${connectedWallet}`);
+    // 1. First check sessionStorage (highest priority - represents current session)
+    const sessionWallet = sessionStorage.getItem('stacksbuilder_session_wallet');
+    if (sessionWallet && ['hiro', 'leather', 'xverse', 'asigna'].includes(sessionWallet)) {
+      connectedWallet = sessionWallet as SupportedWallet;
+      console.log(`🔍 Retrieved session wallet: ${connectedWallet}`);
       return connectedWallet;
     }
 
-    // If no stored wallet but user is signed in, try to detect the wallet
+    // 2. Then check localStorage (persisted from previous sessions)
+    const storedWallet = localStorage.getItem('stacksbuilder_connected_wallet');
+    if (storedWallet && ['hiro', 'leather', 'xverse', 'asigna'].includes(storedWallet)) {
+      connectedWallet = storedWallet as SupportedWallet;
+      console.log(`🔍 Retrieved stored wallet: ${connectedWallet}`);
+      // Also update sessionStorage to maintain consistency
+      sessionStorage.setItem('stacksbuilder_session_wallet', connectedWallet);
+      return connectedWallet;
+    }
+
+    // 3. Only attempt detection if no wallet preference is stored anywhere
     console.log('🔍 User is signed in but no wallet stored, attempting detection...');
     const detectedWallet = detectCurrentWallet();
     if (detectedWallet) {
@@ -82,6 +96,7 @@ export const clearConnectedWallet = () => {
   connectedWallet = null;
   if (typeof window !== 'undefined') {
     localStorage.removeItem('stacksbuilder_connected_wallet');
+    sessionStorage.removeItem('stacksbuilder_session_wallet');
   }
 };
 
@@ -89,30 +104,253 @@ export const clearConnectedWallet = () => {
 export const detectCurrentWallet = (): SupportedWallet | null => {
   if (typeof window === 'undefined') return null;
 
-  // Check for wallet-specific indicators
-  const hasLeather = window.LeatherProvider || window.HiroWalletProvider;
-  const hasXverse = window.XverseProviders?.StacksProvider;
-  const hasAsigna = window.AsignaProvider;
-
-  // Try to determine which wallet was used for the current session
-  // This is a best-guess approach based on available providers
-  if (hasLeather) {
-    return 'leather';
-  } else if (hasXverse) {
-    return 'xverse';
-  } else if (hasAsigna) {
-    return 'asigna';
-  } else {
-    // Default to hiro if no specific wallet is detected
-    return 'hiro';
+  // First, check memory variable and storage directly (avoid circular dependency)
+  if (connectedWallet) {
+    console.log(`🔍 Found wallet in memory: ${connectedWallet}`);
+    return connectedWallet;
   }
+
+  // Check localStorage and sessionStorage directly
+  const localWallet = localStorage.getItem('stacksbuilder_connected_wallet') as SupportedWallet | null;
+  const sessionWallet = sessionStorage.getItem('stacksbuilder_session_wallet') as SupportedWallet | null;
+
+  if (sessionWallet) {
+    console.log(`🔍 Found wallet in session storage: ${sessionWallet}`);
+    connectedWallet = sessionWallet; // Update memory variable
+    return sessionWallet;
+  }
+
+  if (localWallet) {
+    console.log(`🔍 Found wallet in local storage: ${localWallet}`);
+    connectedWallet = localWallet; // Update memory variable
+    return localWallet;
+  }
+
+  // If user is signed in but no wallet is stored, try to detect from available providers
+  if (isUserSignedIn()) {
+    console.log('🔍 User is signed in, attempting wallet detection from providers...');
+
+    // Check which wallet providers are available
+    const hasXverse = !!window.XverseProviders?.StacksProvider;
+    const hasLeather = !!window.LeatherProvider || !!window.HiroWalletProvider;
+    const hasAsigna = !!window.AsignaProvider;
+
+    console.log(`🔍 Available providers: Xverse=${hasXverse}, Leather=${hasLeather}, Asigna=${hasAsigna}`);
+
+    // If only one wallet is available, it's likely the one that was used
+    const availableWallets = [];
+    if (hasXverse) availableWallets.push('xverse');
+    if (hasLeather) availableWallets.push('leather');
+    if (hasAsigna) availableWallets.push('asigna');
+
+    if (availableWallets.length === 1) {
+      const detectedWallet = availableWallets[0] as SupportedWallet;
+      console.log(`🎯 Only one wallet available, using: ${detectedWallet}`);
+      return detectedWallet; // Don't auto-store, let the connection process handle it
+    }
+
+    // If multiple wallets are available, we cannot reliably detect which one was used
+    // Return null to avoid overriding user's actual choice
+    console.log('🔍 Multiple wallets available, cannot auto-detect - user must explicitly connect');
+    return null;
+  }
+
+  console.log('🔍 Could not detect wallet - no providers available or user not signed in');
+  return null;
 };
 
 // Force set a specific wallet (for debugging/fixing wallet detection issues)
 export const forceSetWallet = (wallet: SupportedWallet) => {
   console.log(`🔧 Force setting wallet to: ${wallet}`);
   setConnectedWallet(wallet);
+
+  // Also dispatch event to update UI
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('wallet-connected', {
+      detail: { wallet }
+    }));
+  }
 };
+
+// Force refresh wallet state after connection issues
+export const refreshWalletState = () => {
+  console.log('🔄 Refreshing wallet state...');
+
+  // Clear memory cache
+  connectedWallet = null;
+
+  // Try to get the wallet again
+  const wallet = getConnectedWallet();
+  console.log(`🔄 Refreshed wallet state: ${wallet}`);
+
+  // Dispatch event to update UI
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('wallet-state-refreshed', {
+      detail: { wallet }
+    }));
+  }
+
+  return wallet;
+};
+
+// Monitor and protect wallet selection after connection
+export const protectWalletSelection = (expectedWallet: SupportedWallet) => {
+  console.log(`🛡️ Protecting wallet selection: ${expectedWallet}`);
+
+  // Set up a monitoring interval
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  const monitor = setInterval(() => {
+    attempts++;
+    const currentWallet = getConnectedWallet();
+
+    if (currentWallet !== expectedWallet) {
+      console.warn(`⚠️ Wallet selection changed from ${expectedWallet} to ${currentWallet}, restoring...`);
+      setConnectedWallet(expectedWallet);
+    } else {
+      console.log(`✅ Wallet selection protected: ${currentWallet}`);
+    }
+
+    if (attempts >= maxAttempts) {
+      clearInterval(monitor);
+      console.log(`🛡️ Wallet protection monitoring completed after ${attempts} checks`);
+    }
+  }, 500);
+
+  // Clear monitoring after 5 seconds
+  setTimeout(() => {
+    clearInterval(monitor);
+    console.log('🛡️ Wallet protection monitoring timeout');
+  }, 5000);
+};
+
+// Debug function to check wallet state (can be called from browser console)
+export const debugWalletState = () => {
+  console.log('🔍 === WALLET DEBUG INFO ===');
+  console.log('Memory variable:', connectedWallet);
+  console.log('LocalStorage:', localStorage.getItem('stacksbuilder_connected_wallet'));
+  console.log('SessionStorage:', sessionStorage.getItem('stacksbuilder_session_wallet'));
+  console.log('User signed in:', isUserSignedIn());
+  console.log('User address:', getUserAddress());
+  console.log('getConnectedWallet():', getConnectedWallet());
+  console.log('detectCurrentWallet():', detectCurrentWallet());
+  console.log('Available providers:', {
+    xverse: !!window.XverseProviders?.StacksProvider,
+    leather: !!window.LeatherProvider || !!window.HiroWalletProvider,
+    asigna: !!window.AsignaProvider
+  });
+  console.log('=========================');
+};
+
+// Test wallet provider availability and conflicts
+export const testWalletProviders = () => {
+  console.log('🔍 === WALLET PROVIDER TEST ===');
+
+  // Test Xverse providers
+  console.log('Xverse Providers:');
+  console.log('  window.XverseProviders:', !!window.XverseProviders);
+  console.log('  window.XverseProviders.StacksProvider:', !!window.XverseProviders?.StacksProvider);
+
+  // Test Leather providers
+  console.log('Leather Providers:');
+  console.log('  window.LeatherProvider:', !!window.LeatherProvider);
+  console.log('  window.HiroWalletProvider:', !!window.HiroWalletProvider);
+
+  // Test Asigna providers
+  console.log('Asigna Providers:');
+  console.log('  window.AsignaProvider:', !!window.AsignaProvider);
+
+  // Test for provider conflicts
+  const providers = [];
+  if (window.XverseProviders?.StacksProvider) providers.push('Xverse');
+  if (window.LeatherProvider) providers.push('Leather');
+  if (window.HiroWalletProvider) providers.push('Hiro');
+  if (window.AsignaProvider) providers.push('Asigna');
+
+  console.log(`Active providers: ${providers.join(', ')}`);
+
+  if (providers.length > 1) {
+    console.warn('⚠️ Multiple wallet providers detected - this may cause conflicts');
+  }
+
+  console.log('================================');
+};
+
+// Manual wallet selection for provider conflict situations
+export const manuallySetWallet = (walletId: SupportedWallet) => {
+  console.log(`🔧 Manually setting wallet to: ${walletId}`);
+
+  // Clear any existing wallet data
+  clearConnectedWallet();
+
+  // Set the new wallet
+  setConnectedWallet(walletId);
+
+  // Start protection
+  protectWalletSelection(walletId);
+
+  // Dispatch events
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('wallet-connected', {
+      detail: { wallet: walletId }
+    }));
+    window.dispatchEvent(new CustomEvent('wallet-state-refreshed', {
+      detail: { wallet: walletId }
+    }));
+  }
+
+  console.log(`✅ Wallet manually set to: ${walletId}`);
+  return walletId;
+};
+
+// Auto-detect and fix wallet issues on page load
+export const autoFixWalletDetection = () => {
+  if (typeof window === 'undefined') return;
+
+  // Only run if user is signed in but no wallet is detected
+  if (isUserSignedIn() && !getConnectedWallet()) {
+    console.log('🔍 Auto-fixing wallet detection...');
+
+    const installedWallets = detectInstalledWallets().filter(w => w !== 'hiro');
+
+    // If only one non-Hiro wallet is installed, automatically select it
+    if (installedWallets.length === 1) {
+      const autoWallet = installedWallets[0];
+      console.log(`🔧 Auto-selecting ${autoWallet} wallet (only option available)`);
+      manuallySetWallet(autoWallet);
+      return autoWallet;
+    }
+
+    // If multiple wallets, check for common patterns or preferences
+    const preferredOrder = ['xverse', 'leather', 'asigna'] as const;
+    for (const preferred of preferredOrder) {
+      if (installedWallets.includes(preferred)) {
+        console.log(`🔧 Auto-selecting ${preferred} wallet (preferred option)`);
+        manuallySetWallet(preferred);
+        return preferred;
+      }
+    }
+  }
+
+  return null;
+};
+
+// Make debug function available globally for console access
+if (typeof window !== 'undefined') {
+  window.debugWalletState = debugWalletState;
+  window.forceSetWallet = forceSetWallet;
+  window.refreshWalletState = refreshWalletState;
+  window.protectWalletSelection = protectWalletSelection;
+  window.testWalletProviders = testWalletProviders;
+  window.manuallySetWallet = manuallySetWallet;
+  window.autoFixWalletDetection = autoFixWalletDetection;
+
+  // Auto-run wallet detection fix on page load
+  setTimeout(() => {
+    autoFixWalletDetection();
+  }, 1000);
+}
 
 // Verify wallet consistency and availability
 export const verifyWalletConsistency = (): {
@@ -174,6 +412,31 @@ export const verifyWalletConsistency = (): {
     isAvailable: true,
     message: `${wallet} wallet is ready for transactions`
   };
+};
+
+// Get the wallet that should be used for all operations
+// This ensures consistency throughout the user session
+export const getSessionWallet = (): SupportedWallet | null => {
+  const wallet = getConnectedWallet();
+  if (wallet) {
+    console.log(`🎯 Using session wallet: ${wallet}`);
+    return wallet;
+  }
+
+  console.warn('⚠️ No session wallet found');
+  return null;
+};
+
+// Ensure the same wallet is used for all blockchain operations
+export const ensureWalletConsistency = (): SupportedWallet => {
+  const walletCheck = verifyWalletConsistency();
+
+  if (!walletCheck.isConsistent || !walletCheck.connectedWallet) {
+    throw new Error(`Wallet consistency error: ${walletCheck.message}. Please reconnect your wallet.`);
+  }
+
+  console.log(`✅ Wallet consistency verified: ${walletCheck.connectedWallet}`);
+  return walletCheck.connectedWallet;
 };
 
 // Development configuration
@@ -329,19 +592,28 @@ export const getWalletInfo = (walletId: SupportedWallet): WalletInfo => {
 
 // Enhanced wallet connection
 export const connectSpecificWallet = async (walletId: SupportedWallet): Promise<void> => {
+  if (isConnecting) {
+    throw new Error('Another wallet connection is already in progress. Please wait.');
+  }
+
+  isConnecting = true;
   console.log(`🔗 Connecting to specific wallet: ${walletId}`);
 
-  switch (walletId) {
-    case 'hiro':
-      return connectHiroOrLeather('hiro');
-    case 'leather':
-      return connectHiroOrLeather('leather');
-    case 'xverse':
-      return connectXverse();
-    case 'asigna':
-      return connectAsigna();
-    default:
-      throw new Error(`Unsupported wallet: ${walletId}`);
+  try {
+    switch (walletId) {
+      case 'hiro':
+        return await connectHiroOrLeather('hiro');
+      case 'leather':
+        return await connectHiroOrLeather('leather');
+      case 'xverse':
+        return await connectXverse();
+      case 'asigna':
+        return await connectAsigna();
+      default:
+        throw new Error(`Unsupported wallet: ${walletId}`);
+    }
+  } finally {
+    isConnecting = false;
   }
 };
 
@@ -356,30 +628,17 @@ const connectHiroOrLeather = (specificWallet?: 'hiro' | 'leather'): Promise<void
       onFinish: () => {
         // Track the specific wallet that was connected
         if (specificWallet) {
-          setConnectedWallet(specificWallet);
+          // Use the manual wallet setting to bypass any provider conflicts
+          manuallySetWallet(specificWallet);
           console.log(`✅ Connected to ${specificWallet} wallet`);
         } else {
-          // Try to detect which wallet was actually used for the connection
-          const hasLeather = typeof window !== 'undefined' &&
-            ((window as any).LeatherProvider || (window as any).HiroWalletProvider);
-          const hasXverse = typeof window !== 'undefined' &&
-            (window as any).XverseProviders?.StacksProvider;
-          const hasAsigna = typeof window !== 'undefined' &&
-            (window as any).AsignaProvider;
-
-          // Default detection logic - prefer Leather if available since it's commonly used with Stacks Connect
-          let detectedWallet: SupportedWallet = 'hiro';
-          if (hasLeather) {
-            detectedWallet = 'leather';
-          } else if (hasXverse) {
-            detectedWallet = 'xverse';
-          } else if (hasAsigna) {
-            detectedWallet = 'asigna';
-          }
-
-          setConnectedWallet(detectedWallet);
-          console.log(`✅ Connected to detected wallet: ${detectedWallet}`);
-          console.log(`🔍 Detection details: Leather=${hasLeather}, Xverse=${hasXverse}, Asigna=${hasAsigna}`);
+          // When no specific wallet is provided, we can't reliably detect which one was used
+          // The Stacks Connect modal doesn't provide this information
+          // Default to 'leather' since it's the most common wallet used with Stacks Connect
+          const defaultWallet: SupportedWallet = 'leather';
+          manuallySetWallet(defaultWallet);
+          console.log(`✅ Connected via Stacks Connect - defaulting to: ${defaultWallet}`);
+          console.log(`ℹ️ For precise wallet tracking, use the wallet selector to connect to a specific wallet`);
         }
         resolve();
         // Use router refresh instead of hard reload to prevent chunk errors
@@ -387,11 +646,16 @@ const connectHiroOrLeather = (specificWallet?: 'hiro' | 'leather'): Promise<void
           // Make sure the wallet is properly stored
           setTimeout(() => {
             const currentWallet = getConnectedWallet();
-            if (!currentWallet) {
+            if (!currentWallet && specificWallet) {
+              console.log(`🔧 Post-connection wallet fix: ${specificWallet}`);
+              setConnectedWallet(specificWallet);
+              protectWalletSelection(specificWallet);
+            } else if (!currentWallet) {
               const detected = detectCurrentWallet();
               if (detected) {
                 console.log(`🔧 Post-connection wallet fix: ${detected}`);
                 setConnectedWallet(detected);
+                protectWalletSelection(detected);
               }
             }
             window.dispatchEvent(new Event('wallet-connected'));
@@ -407,24 +671,44 @@ const connectHiroOrLeather = (specificWallet?: 'hiro' | 'leather'): Promise<void
 };
 
 const connectXverse = async (): Promise<void> => {
-  if (!window.XverseProviders?.StacksProvider) {
-    throw new Error('Xverse wallet not installed');
-  }
+  console.log('🔗 Connecting to Xverse wallet...');
 
   try {
-    const provider = window.XverseProviders.StacksProvider;
-    await provider.request('stx_requestAccounts', null);
-    // Track that Xverse is connected
-    setConnectedWallet('xverse');
-    console.log('✅ Successfully connected to Xverse wallet');
-  } catch (error) {
-    // Handle provider conflicts gracefully
-    if (error instanceof Error && error.message.includes('StacksProvider')) {
-      console.warn('⚠️ Xverse provider conflict detected, but connection may still work');
-      // Still try to set the wallet as connected since the user interaction succeeded
-      setConnectedWallet('xverse');
-      return;
+    // Check if Xverse is available
+    if (!window.XverseProviders?.StacksProvider) {
+      throw new Error('Xverse wallet not installed');
     }
+
+    // Try the provider connection, but handle conflicts gracefully
+    let connectionSucceeded = false;
+
+    try {
+      await window.XverseProviders.StacksProvider.request('stx_requestAccounts', null);
+      connectionSucceeded = true;
+      console.log('✅ Xverse provider connection succeeded');
+    } catch (providerError) {
+      console.warn('⚠️ Provider connection failed due to conflicts, but connection may have succeeded:', providerError);
+
+      // Wait a moment for the connection to potentially complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check if user is actually signed in (connection may have succeeded despite error)
+      if (isUserSignedIn()) {
+        console.log('✅ User is signed in - connection succeeded despite provider error');
+        connectionSucceeded = true;
+      }
+    }
+
+    if (connectionSucceeded) {
+      // Automatically set wallet to Xverse since user explicitly chose it
+      manuallySetWallet('xverse');
+      console.log('✅ Successfully connected to Xverse wallet');
+    } else {
+      throw new Error('Failed to establish Xverse connection');
+    }
+
+  } catch (error) {
+    console.error('❌ Xverse connection error:', error);
     throw new Error(`Failed to connect to Xverse wallet: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
@@ -434,18 +718,27 @@ const connectAsigna = async (): Promise<void> => {
     throw new Error('Asigna wallet not installed');
   }
 
+  console.log('🔗 Connecting to Asigna wallet...');
+
   try {
     await window.AsignaProvider.connect();
-    // Track that Asigna is connected
+    // Track that Asigna is connected - this is crucial for session consistency
     setConnectedWallet('asigna');
     console.log('✅ Connected to Asigna wallet');
-  } catch (error) {
+    console.log('🎯 Asigna wallet set as session wallet for all future operations');
+  } catch {
     throw new Error('Failed to connect to Asigna wallet');
   }
 };
 
 // Use native Stacks Connect modal
 export const connectWallet = (): Promise<void> => {
+  if (isConnecting) {
+    return Promise.reject(new Error('Another wallet connection is already in progress. Please wait.'));
+  }
+
+  isConnecting = true;
+
   return new Promise((resolve, reject) => {
     showConnect({
       appDetails: {
@@ -454,24 +747,35 @@ export const connectWallet = (): Promise<void> => {
       },
       redirectTo: '/',
       onFinish: () => {
-        resolve();
-        // Use router refresh instead of hard reload to prevent chunk errors
-        if (typeof window !== 'undefined') {
-          // Make sure the wallet is properly stored
-          setTimeout(() => {
-            const currentWallet = getConnectedWallet();
-            if (!currentWallet) {
-              const detected = detectCurrentWallet();
-              if (detected) {
-                console.log(`🔧 Post-connection wallet fix: ${detected}`);
-                setConnectedWallet(detected);
+        try {
+          // Ensure wallet is properly tracked after connection
+          if (typeof window !== 'undefined') {
+            setTimeout(() => {
+              const currentWallet = getConnectedWallet();
+              if (!currentWallet) {
+                const detected = detectCurrentWallet();
+                if (detected) {
+                  console.log(`🔧 Post-connection wallet detection: ${detected}`);
+                  setConnectedWallet(detected);
+                }
+              } else {
+                console.log(`✅ Wallet already tracked: ${currentWallet}`);
               }
-            }
-            window.dispatchEvent(new Event('wallet-connected'));
-          }, 100);
+
+              // Verify wallet consistency after connection
+              const walletCheck = verifyWalletConsistency();
+              console.log('🔍 Post-connection wallet verification:', walletCheck);
+
+              window.dispatchEvent(new Event('wallet-connected'));
+            }, 100);
+          }
+          resolve();
+        } finally {
+          isConnecting = false;
         }
       },
       onCancel: () => {
+        isConnecting = false;
         reject(new Error('User cancelled connection'));
       },
       userSession,
@@ -608,7 +912,7 @@ export const checkProfileExists = async (userAddress: string): Promise<boolean> 
 };
 
 // Smart contract read functions
-export const readProfileFromContract = async (userAddress: string) => {
+export const readProfileFromContract = async (userAddress: string): Promise<DeveloperProfile | null> => {
 
   // Skip contract calls if disabled in development
   if (!DEV_CONFIG.ENABLE_CONTRACT_CALLS) {
@@ -634,15 +938,15 @@ export const readProfileFromContract = async (userAddress: string) => {
         // Return the actual stored profile data
         return {
           address: userAddress,
-          displayName: storedProfileData.displayName || 'Anonymous Developer',
-          bio: storedProfileData.bio || 'No bio provided',
-          skills: storedProfileData.skills || [],
-          githubUsername: storedProfileData.githubUsername || '',
+          displayName: (storedProfileData.displayName as string) || 'Anonymous Developer',
+          bio: (storedProfileData.bio as string) || 'No bio provided',
+          skills: (storedProfileData.skills as string[]) || [],
+          githubUsername: (storedProfileData.githubUsername as string) || '',
           twitterHandle: storedProfileData.twitterUsername ?
-            (storedProfileData.twitterUsername.startsWith('http') ?
+            (typeof storedProfileData.twitterUsername === 'string' && storedProfileData.twitterUsername.startsWith('http') ?
               storedProfileData.twitterUsername :
               `https://twitter.com/${storedProfileData.twitterUsername}`) : '',
-          linkedinUsername: storedProfileData.linkedinUsername || '',
+          linkedinUsername: (storedProfileData.linkedinUsername as string) || '',
           portfolioProjects: [],
           reputation: {
             overall: 850,
@@ -658,12 +962,12 @@ export const readProfileFromContract = async (userAddress: string) => {
           joinedAt: Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60), // 30 days ago
           lastActive: Math.floor(Date.now() / 1000),
           profileImageUrl: undefined,
-          websiteUrl: storedProfileData.website || '',
-          location: storedProfileData.location || '',
+          websiteUrl: (storedProfileData.website as string) || '',
+          location: (storedProfileData.location as string) || '',
           availableForWork: true,
           hourlyRate: undefined,
           // Add backward compatibility fields
-          specialties: storedProfileData.specialties || []
+          specialties: (storedProfileData.specialties as string[]) || []
         };
       } else {
         // Fallback to default data if no stored data found
@@ -730,12 +1034,12 @@ export const readProfileFromContract = async (userAddress: string) => {
         if (storedProfileData) {
           return {
             address: userAddress,
-            displayName: storedProfileData.displayName || 'Anonymous Developer',
-            bio: storedProfileData.bio || 'No bio provided',
-            skills: storedProfileData.skills || [],
-            githubUsername: storedProfileData.githubUsername || '',
-            twitterHandle: storedProfileData.twitterUsername || '',
-            linkedinUsername: storedProfileData.linkedinUsername || '',
+            displayName: (storedProfileData.displayName as string) || 'Anonymous Developer',
+            bio: (storedProfileData.bio as string) || 'No bio provided',
+            skills: (storedProfileData.skills as string[]) || [],
+            githubUsername: (storedProfileData.githubUsername as string) || '',
+            twitterHandle: (storedProfileData.twitterUsername as string) || '',
+            linkedinUsername: (storedProfileData.linkedinUsername as string) || '',
             portfolioProjects: [],
             reputation: {
               overall: 0,
@@ -751,11 +1055,11 @@ export const readProfileFromContract = async (userAddress: string) => {
             joinedAt: Math.floor(Date.now() / 1000),
             lastActive: Math.floor(Date.now() / 1000),
             profileImageUrl: undefined,
-            websiteUrl: storedProfileData.website || '',
-            location: storedProfileData.location || '',
+            websiteUrl: (storedProfileData.website as string) || '',
+            location: (storedProfileData.location as string) || '',
             availableForWork: true,
             hourlyRate: undefined,
-            specialties: storedProfileData.specialties || []
+            specialties: (storedProfileData.specialties as string[]) || []
           };
         }
       }
@@ -771,8 +1075,8 @@ export const readProfileFromContract = async (userAddress: string) => {
     const profileData = contractProfile;
     if (DEV_CONFIG.ENABLE_DEBUG_LOGGING) {
       console.log('Converted profile data:', profileData);
-      console.log('Profile displayName from contract:', profileData.displayName);
-      console.log('Profile displayName type:', typeof profileData.displayName);
+      console.log('Profile displayName from contract:', profileData['display-name']);
+      console.log('Profile displayName type:', typeof profileData['display-name']);
     }
 
     // Create the profile object with additional fields for backward compatibility
@@ -780,18 +1084,18 @@ export const readProfileFromContract = async (userAddress: string) => {
     const formattedProfile = {
       address: userAddress,
       bnsName: undefined,
-      displayName: profileData.displayName || '',
+      displayName: profileData['display-name'] || '',
       bio: profileData.bio || '',
       location: profileData.location || '',
       website: profileData.website || '',
       skills: Array.isArray(profileData.skills) ? profileData.skills : [],
       specialties: Array.isArray(profileData.specialties) ? profileData.specialties : [],
-      githubUsername: profileData.githubUsername || '',
-      twitterHandle: profileData.twitterUsername ?
-        (profileData.twitterUsername.startsWith('http') ?
-          profileData.twitterUsername :
-          `https://twitter.com/${profileData.twitterUsername}`) : '',
-      linkedinUsername: profileData.linkedinUsername || '',
+      githubUsername: profileData['github-username'] || '',
+      twitterHandle: profileData['twitter-username'] ?
+        (profileData['twitter-username'].startsWith('http') ?
+          profileData['twitter-username'] :
+          `https://twitter.com/${profileData['twitter-username']}`) : '',
+      linkedinUsername: profileData['linkedin-username'] || '',
       portfolioProjects: [],
       reputation: {
         overall: 850, // Default reputation score
@@ -803,9 +1107,9 @@ export const readProfileFromContract = async (userAddress: string) => {
         stacksTransactions: 89,
         lastUpdated: Math.floor(Date.now() / 1000)
       },
-      isVerified: profileData.isVerified || false,
-      joinedAt: profileData.createdAt || Math.floor(Date.now() / 1000),
-      lastActive: profileData.updatedAt || Math.floor(Date.now() / 1000),
+      isVerified: profileData['is-verified'] || false,
+      joinedAt: profileData['created-at'] || Math.floor(Date.now() / 1000),
+      lastActive: profileData['updated-at'] || Math.floor(Date.now() / 1000),
       profileImageUrl: undefined,
       websiteUrl: profileData.website || '',
       availableForWork: false,
@@ -838,15 +1142,15 @@ export const readProfileFromContract = async (userAddress: string) => {
         // Return the actual stored profile data
         return {
           address: userAddress,
-          displayName: storedProfileData.displayName || 'Anonymous Developer',
-          bio: storedProfileData.bio || 'No bio provided',
-          skills: storedProfileData.skills || [],
-          githubUsername: storedProfileData.githubUsername || '',
+          displayName: (storedProfileData.displayName as string) || 'Anonymous Developer',
+          bio: (storedProfileData.bio as string) || 'No bio provided',
+          skills: (storedProfileData.skills as string[]) || [],
+          githubUsername: (storedProfileData.githubUsername as string) || '',
           twitterHandle: storedProfileData.twitterUsername ?
-            (storedProfileData.twitterUsername.startsWith('http') ?
+            (typeof storedProfileData.twitterUsername === 'string' && storedProfileData.twitterUsername.startsWith('http') ?
               storedProfileData.twitterUsername :
               `https://twitter.com/${storedProfileData.twitterUsername}`) : '',
-          linkedinUsername: storedProfileData.linkedinUsername || '',
+          linkedinUsername: (storedProfileData.linkedinUsername as string) || '',
           portfolioProjects: [],
           reputation: {
             overall: 850,
@@ -862,12 +1166,12 @@ export const readProfileFromContract = async (userAddress: string) => {
           joinedAt: Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60), // 30 days ago
           lastActive: Math.floor(Date.now() / 1000),
           profileImageUrl: undefined,
-          websiteUrl: storedProfileData.website || '',
-          location: storedProfileData.location || '',
+          websiteUrl: (storedProfileData.website as string) || '',
+          location: (storedProfileData.location as string) || '',
           availableForWork: true,
           hourlyRate: undefined,
           // Add backward compatibility fields
-          specialties: storedProfileData.specialties || []
+          specialties: (storedProfileData.specialties as string[]) || []
         };
       } else {
         // Fallback to default data if no stored data found

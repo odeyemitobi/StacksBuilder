@@ -1,14 +1,41 @@
 // Core data types for StacksBuilder
 
 // Wallet provider type declarations
+export interface WalletProvider {
+  connect(): Promise<void>;
+  disconnect?(): Promise<void>;
+  getAddresses?(): Promise<string[]>;
+  signTransaction?(transaction: unknown): Promise<unknown>;
+}
+
+export interface XverseStacksProvider extends WalletProvider {
+  request(method: string, params?: unknown): Promise<unknown>;
+}
+
+export interface LeatherProvider extends WalletProvider {
+  request(method: string, params?: unknown): Promise<unknown>;
+}
+
+export interface AsignaProvider extends WalletProvider {
+  request(method: string, params?: unknown): Promise<unknown>;
+}
+
 declare global {
   interface Window {
-    LeatherProvider?: any;
-    HiroWalletProvider?: any;
+    LeatherProvider?: LeatherProvider;
+    HiroWalletProvider?: LeatherProvider;
     XverseProviders?: {
-      StacksProvider: any;
+      StacksProvider: XverseStacksProvider;
     };
-    AsignaProvider?: any;
+    AsignaProvider?: AsignaProvider;
+    // Debug functions
+    debugWalletState?: () => void;
+    forceSetWallet?: (wallet: 'hiro' | 'leather' | 'xverse' | 'asigna') => void;
+    refreshWalletState?: () => void;
+    protectWalletSelection?: (expectedWallet: 'hiro' | 'leather' | 'xverse' | 'asigna') => void;
+    testWalletProviders?: () => void;
+    manuallySetWallet?: (wallet: 'hiro' | 'leather' | 'xverse' | 'asigna') => void;
+    autoFixWalletDetection?: () => void;
   }
 }
 
@@ -173,7 +200,7 @@ export interface PaginatedResponse<T> {
 }
 
 // Form Types
-export interface CreateProfileForm {
+export interface CreateProfileForm extends Record<string, unknown> {
   displayName: string;
   bio: string;
   location: string;
@@ -206,6 +233,83 @@ export interface SearchFilters {
   availableForWork?: boolean;
   minReputation?: number;
   verified?: boolean;
+}
+
+// Contract and Blockchain Types
+export interface ContractCallData {
+  txId: string;
+  stacksTransaction?: unknown;
+}
+
+export interface StacksUserData {
+  profile?: {
+    stxAddress: {
+      testnet: string;
+      mainnet: string;
+    };
+  };
+  username?: string;
+  identityAddress?: string;
+  appPrivateKey?: string;
+  coreSessionToken?: string;
+  authResponseToken?: string;
+  hubUrl?: string;
+  gaiaHubUrl?: string;
+}
+
+export interface ProfileData {
+  displayName: string;
+  bio: string;
+  location: string;
+  website: string;
+  githubUsername: string;
+  twitterUsername: string;
+  linkedinUsername: string;
+  skills: string[];
+  specialties: string[];
+  createdAt: number;
+  updatedAt: number;
+  isVerified: boolean;
+}
+
+// Import ContractProfile from contracts
+export interface ContractProfile {
+  'display-name': string;
+  bio: string;
+  location: string;
+  website: string;
+  'github-username': string;
+  'twitter-username': string;
+  'linkedin-username': string;
+  skills: string[];
+  specialties: string[];
+  'created-at': number;
+  'updated-at': number;
+  'is-verified': boolean;
+}
+
+
+
+// Contract function argument types
+export type ContractFunctionArg =
+  | { type: 'uint'; value: number }
+  | { type: 'int'; value: number }
+  | { type: 'bool'; value: boolean }
+  | { type: 'principal'; value: string }
+  | { type: 'string-ascii'; value: string }
+  | { type: 'string-utf8'; value: string }
+  | { type: 'buffer'; value: Uint8Array }
+  | { type: 'list'; value: ContractFunctionArg[] }
+  | { type: 'tuple'; value: Record<string, ContractFunctionArg> }
+  | { type: 'optional'; value: ContractFunctionArg | null }
+  | { type: 'response'; value: { ok: ContractFunctionArg } | { error: ContractFunctionArg } };
+
+// Form data types
+export interface SocialMediaFormData {
+  githubUsername?: string;
+  twitterUsername?: string;
+  linkedinUsername?: string;
+  [key: string]: unknown;
 }
 
 export interface ProjectFilters {

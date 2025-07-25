@@ -1,18 +1,64 @@
 import {
   callReadOnlyFunction,
-  contractPrincipalCV,
   standardPrincipalCV,
   stringAsciiCV,
   listCV,
-  uintCV,
   cvToValue,
-  makeContractCall,
-  broadcastTransaction,
   AnchorMode,
   PostConditionMode,
+  uintCV,
+  intCV,
+  boolCV,
+  principalCV,
+  bufferCV,
+  tupleCV,
+  someCV,
+  noneCV,
+  responseOkCV,
+  responseErrorCV,
+  type ClarityValue
 } from '@stacks/transactions';
-import { getStacksNetwork, getConnectedWallet, verifyWalletConsistency } from './stacks';
+import { getStacksNetwork, ensureWalletConsistency } from './stacks';
 import { openContractCall } from '@stacks/connect';
+import { ContractFunctionArg, ContractCallData } from '@/types';
+
+// Convert our custom ContractFunctionArg type to actual Clarity values
+function convertToClarity(arg: ContractFunctionArg): ClarityValue {
+  switch (arg.type) {
+    case 'uint':
+      return uintCV(arg.value);
+    case 'int':
+      return intCV(arg.value);
+    case 'bool':
+      return boolCV(arg.value);
+    case 'principal':
+      return principalCV(arg.value);
+    case 'string-ascii':
+      return stringAsciiCV(arg.value);
+    case 'string-utf8':
+      return stringAsciiCV(arg.value); // Note: using stringAsciiCV for simplicity
+    case 'buffer':
+      return bufferCV(arg.value);
+    case 'list':
+      return listCV(arg.value.map(convertToClarity));
+    case 'tuple':
+      const tupleData: Record<string, ClarityValue> = {};
+      for (const [key, value] of Object.entries(arg.value)) {
+        tupleData[key] = convertToClarity(value);
+      }
+      return tupleCV(tupleData);
+    case 'optional':
+      return arg.value ? someCV(convertToClarity(arg.value)) : noneCV();
+    case 'response':
+      if ('ok' in arg.value) {
+        return responseOkCV(convertToClarity(arg.value.ok));
+      } else {
+        return responseErrorCV(convertToClarity(arg.value.error));
+      }
+    default:
+      throw new Error(`Unsupported ContractFunctionArg type: ${(arg as { type: string }).type}`);
+  }
+}
 
 // Contract configuration - using the deployed testnet contract with delete functionality
 export const CONTRACT_CONFIG = {
@@ -27,34 +73,54 @@ export const CONTRACT_CONFIG = {
 // Wallet-specific contract call function
 async function callContractWithWallet(
   functionName: string,
-  functionArgs: any[],
-  onFinish?: (data: any) => void,
+  functionArgs: ContractFunctionArg[],
+  onFinish?: (data: ContractCallData) => void,
   onCancel?: () => void
 ): Promise<void> {
-  // Verify wallet consistency before making contract call
-  const walletCheck = verifyWalletConsistency();
-  console.log('🔍 Wallet consistency check:', walletCheck);
+  // Ensure wallet consistency before making contract call
+  // This will throw an error if the wallet is not consistent
+  const connectedWallet = ensureWalletConsistency();
+  console.log('🔗 Using session wallet for contract call:', connectedWallet);
 
-  if (!walletCheck.isConsistent) {
-    console.error('❌ Wallet consistency check failed:', walletCheck.message);
-    throw new Error(`Wallet Error: ${walletCheck.message}`);
+  // Additional protection: verify the wallet is still the expected one
+  if (typeof window !== 'undefined') {
+    const sessionWallet = sessionStorage.getItem('stacksbuilder_session_wallet');
+    if (sessionWallet && sessionWallet !== connectedWallet &&
+        ['hiro', 'leather', 'xverse', 'asigna'].includes(sessionWallet)) {
+      console.warn(`⚠️ Wallet mismatch detected! Session: ${sessionWallet}, Connected: ${connectedWallet}`);
+      // Force the session wallet to be used
+      const { manuallySetWallet } = await import('./stacks');
+      manuallySetWallet(sessionWallet as 'hiro' | 'leather' | 'xverse' | 'asigna');
+
+      // Update the connected wallet to match session
+      const updatedWallet = ensureWalletConsistency();
+      console.log('🔄 Updated wallet to match session:', updatedWallet);
+    }
+
+    // Extra protection for Xverse: ensure it's really selected
+    if (connectedWallet === 'xverse') {
+      console.log('🔒 Enforcing Xverse wallet selection');
+      // Store a flag to indicate we're specifically using Xverse
+      sessionStorage.setItem('stacksbuilder_force_xverse', 'true');
+    }
   }
-
-  const connectedWallet = walletCheck.connectedWallet;
-  console.log('🔗 Using verified wallet for contract call:', connectedWallet);
 
   // Handle each wallet with its specific API
   switch (connectedWallet) {
     case 'xverse':
+      console.log('📱 Calling contract with Xverse wallet (protected)');
       return callContractWithXverse(functionName, functionArgs, onFinish, onCancel);
 
     case 'leather':
+      console.log('🧳 Calling contract with Leather wallet');
       return callContractWithLeather(functionName, functionArgs, onFinish, onCancel);
 
     case 'hiro':
+      console.log('🏛️ Calling contract with Hiro wallet');
       return callContractWithHiro(functionName, functionArgs, onFinish, onCancel);
 
     case 'asigna':
+      console.log('🔐 Calling contract with Asigna wallet');
       return callContractWithAsigna(functionName, functionArgs, onFinish, onCancel);
 
     default:
@@ -63,60 +129,136 @@ async function callContractWithWallet(
   }
 }
 
-// Xverse-specific contract call
+// Xverse-specific contract call using direct provider access
 async function callContractWithXverse(
   functionName: string,
-  functionArgs: any[],
-  onFinish?: (data: any) => void,
+  functionArgs: ContractFunctionArg[],
+  onFinish?: (data: ContractCallData) => void,
   onCancel?: () => void
 ): Promise<void> {
-  if (typeof window === 'undefined' || !(window as any).XverseProviders?.StacksProvider) {
-    throw new Error('Xverse wallet not available');
-  }
+  console.log('📱 Using Xverse wallet for contract call (direct provider)');
 
   try {
-    const provider = (window as any).XverseProviders.StacksProvider;
+    // Verify we should be using Xverse
+    const forceXverse = sessionStorage.getItem('stacksbuilder_force_xverse');
+    if (!forceXverse) {
+      console.warn('⚠️ Xverse not explicitly selected, this might be a wallet conflict');
+    }
 
-    const contractCallOptions = {
+    // Verify Xverse is available
+    if (!window.XverseProviders?.StacksProvider) {
+      throw new Error('Xverse wallet not available');
+    }
+
+    // Force Xverse to be the active provider
+    console.log('📱 Activating Xverse provider...');
+    try {
+      await window.XverseProviders.StacksProvider.request('stx_requestAccounts', null);
+      console.log('✅ Xverse provider activated successfully');
+    } catch (activationError) {
+      console.warn('⚠️ Xverse activation warning (may still work):', activationError);
+      // Continue anyway as the user might already be connected
+    }
+
+    // Use a more direct approach with Xverse provider
+    console.log('📱 Calling contract with Xverse provider directly');
+
+    // Create the transaction options
+    const txOptions = {
+      network: CONTRACT_CONFIG.NETWORK,
+      anchorMode: AnchorMode.Any,
       contractAddress: CONTRACT_CONFIG.CONTRACT_ADDRESS,
       contractName: CONTRACT_CONFIG.CONTRACT_NAME,
       functionName,
-      functionArgs: functionArgs.map(arg => arg.serialize().toString('hex')),
-      network: CONTRACT_CONFIG.NETWORK.version === 128 ? 'testnet' : 'mainnet',
-      anchorMode: 'any',
-      postConditionMode: 'allow'
+      functionArgs: functionArgs.map(convertToClarity),
+      postConditionMode: PostConditionMode.Allow,
+      onFinish: (data: ContractCallData) => {
+        console.log('✅ Xverse contract call successful:', data.txId);
+        if (onFinish) onFinish(data);
+      },
+      onCancel: () => {
+        console.log('❌ Xverse contract call cancelled');
+        if (onCancel) onCancel();
+      },
     };
 
-    console.log('📱 Calling Xverse with options:', contractCallOptions);
+    // Skip problematic request methods and go directly to openContractCall with wallet isolation
+    console.log('📱 Skipping problematic request methods, using openContractCall directly');
 
-    const response = await provider.request('stx_callContract', contractCallOptions);
+    // Use openContractCall with aggressive wallet isolation
+    console.log('📱 Using openContractCall with aggressive Xverse isolation');
 
-    if (response.result) {
-      console.log('✅ Xverse contract call successful:', response.result);
-      if (onFinish) onFinish({ txId: response.result.txid });
-    } else {
-      throw new Error('Xverse contract call failed');
+    // Store references to other wallet providers
+    const otherProviders = {
+      leather: window.LeatherProvider,
+      hiro: window.HiroWalletProvider,
+      asigna: window.AsignaProvider
+    };
+
+    try {
+      // Temporarily set other providers to undefined (not delete, just override)
+      (window as typeof window & { LeatherProvider?: undefined }).LeatherProvider = undefined;
+      (window as typeof window & { HiroWalletProvider?: undefined }).HiroWalletProvider = undefined;
+      (window as typeof window & { AsignaProvider?: undefined }).AsignaProvider = undefined;
+
+      console.log('🔒 Temporarily isolated Xverse by hiding other providers');
+      console.log('📱 Transaction options:', {
+        network: txOptions.network.version,
+        contractAddress: txOptions.contractAddress,
+        contractName: txOptions.contractName,
+        functionName: txOptions.functionName,
+        functionArgsCount: txOptions.functionArgs.length,
+        postConditionMode: txOptions.postConditionMode
+      });
+
+      // Wait a moment to ensure provider changes take effect
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      console.log('📱 Calling openContractCall with isolated Xverse...');
+      await openContractCall(txOptions);
+      console.log('✅ openContractCall with isolated Xverse successful');
+
+    } finally {
+      // Always restore other providers
+      if (otherProviders.leather) {
+        window.LeatherProvider = otherProviders.leather;
+      }
+      if (otherProviders.hiro) {
+        window.HiroWalletProvider = otherProviders.hiro;
+      }
+      if (otherProviders.asigna) {
+        window.AsignaProvider = otherProviders.asigna;
+      }
+      console.log('🔓 Restored other wallet providers');
     }
+
   } catch (error) {
     console.error('❌ Xverse contract call error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown'
+    });
     if (onCancel) onCancel();
     throw error;
+  } finally {
+    // Clean up the force flag
+    sessionStorage.removeItem('stacksbuilder_force_xverse');
   }
 }
 
 // Leather-specific contract call
 async function callContractWithLeather(
   functionName: string,
-  functionArgs: any[],
-  onFinish?: (data: any) => void,
+  functionArgs: ContractFunctionArg[],
+  onFinish?: (data: ContractCallData) => void,
   onCancel?: () => void
 ): Promise<void> {
-  if (typeof window === 'undefined' || !(window as any).LeatherProvider) {
+  if (typeof window === 'undefined' || !window.LeatherProvider) {
     throw new Error('Leather wallet not available');
   }
 
   try {
-    const provider = (window as any).LeatherProvider;
     console.log('🧳 Using Leather wallet for contract call');
 
     // Leather uses the standard Stacks Connect interface
@@ -126,7 +268,7 @@ async function callContractWithLeather(
       contractAddress: CONTRACT_CONFIG.CONTRACT_ADDRESS,
       contractName: CONTRACT_CONFIG.CONTRACT_NAME,
       functionName,
-      functionArgs,
+      functionArgs: functionArgs.map(convertToClarity),
       postConditionMode: PostConditionMode.Allow,
       onFinish: (data) => {
         console.log('✅ Leather contract call successful:', data.txId);
@@ -147,8 +289,8 @@ async function callContractWithLeather(
 // Hiro-specific contract call
 async function callContractWithHiro(
   functionName: string,
-  functionArgs: any[],
-  onFinish?: (data: any) => void,
+  functionArgs: ContractFunctionArg[],
+  onFinish?: (data: ContractCallData) => void,
   onCancel?: () => void
 ): Promise<void> {
   console.log('🟣 Using Hiro wallet for contract call');
@@ -160,7 +302,7 @@ async function callContractWithHiro(
       contractAddress: CONTRACT_CONFIG.CONTRACT_ADDRESS,
       contractName: CONTRACT_CONFIG.CONTRACT_NAME,
       functionName,
-      functionArgs,
+      functionArgs: functionArgs.map(convertToClarity),
       postConditionMode: PostConditionMode.Allow,
       onFinish: (data) => {
         console.log('✅ Hiro contract call successful:', data.txId);
@@ -181,11 +323,11 @@ async function callContractWithHiro(
 // Asigna-specific contract call
 async function callContractWithAsigna(
   functionName: string,
-  functionArgs: any[],
-  onFinish?: (data: any) => void,
+  functionArgs: ContractFunctionArg[],
+  onFinish?: (data: ContractCallData) => void,
   onCancel?: () => void
 ): Promise<void> {
-  if (typeof window === 'undefined' || !(window as any).AsignaProvider) {
+  if (typeof window === 'undefined' || !window.AsignaProvider) {
     throw new Error('Asigna wallet not available');
   }
 
@@ -199,7 +341,7 @@ async function callContractWithAsigna(
       contractAddress: CONTRACT_CONFIG.CONTRACT_ADDRESS,
       contractName: CONTRACT_CONFIG.CONTRACT_NAME,
       functionName,
-      functionArgs,
+      functionArgs: functionArgs.map(convertToClarity),
       postConditionMode: PostConditionMode.Allow,
       onFinish: (data) => {
         console.log('✅ Asigna contract call successful:', data.txId);
@@ -220,8 +362,8 @@ async function callContractWithAsigna(
 // Generic fallback contract call
 async function callContractGeneric(
   functionName: string,
-  functionArgs: any[],
-  onFinish?: (data: any) => void,
+  functionArgs: ContractFunctionArg[],
+  onFinish?: (data: ContractCallData) => void,
   onCancel?: () => void
 ): Promise<void> {
   console.log('🔄 Using generic Stacks Connect');
@@ -233,7 +375,7 @@ async function callContractGeneric(
       contractAddress: CONTRACT_CONFIG.CONTRACT_ADDRESS,
       contractName: CONTRACT_CONFIG.CONTRACT_NAME,
       functionName,
-      functionArgs,
+      functionArgs: functionArgs.map(convertToClarity),
       postConditionMode: PostConditionMode.Allow,
       onFinish: (data) => {
         console.log('✅ Generic contract call successful:', data.txId);
@@ -344,54 +486,54 @@ export async function getProfileFromContract(userAddress: string): Promise<Contr
     }
 
     // Helper function to safely extract string values
-    const extractStringValue = (value: any): string => {
+    const extractStringValue = (value: unknown): string => {
       if (typeof value === 'string') return value;
-      if (value && typeof value === 'object' && value.value) return String(value.value);
-      if (value && typeof value === 'object' && value.type === 'buff') return '';
+      if (value && typeof value === 'object' && 'value' in value) return String(value.value);
+      if (value && typeof value === 'object' && 'type' in value && value.type === 'buff') return '';
       return '';
     };
 
     // Helper function to safely extract array values
-    const extractArrayValue = (value: any): string[] => {
+    const extractArrayValue = (value: unknown): string[] => {
       if (Array.isArray(value)) {
         return value.map(item => extractStringValue(item));
       }
-      if (value && typeof value === 'object' && Array.isArray(value.value)) {
-        return value.value.map((item: any) => extractStringValue(item));
+      if (value && typeof value === 'object' && 'value' in value && Array.isArray(value.value)) {
+        return (value.value as unknown[]).map((item: unknown) => extractStringValue(item));
       }
       return [];
     };
 
     // Helper function to safely extract number values
-    const extractNumberValue = (value: any): number => {
+    const extractNumberValue = (value: unknown): number => {
       if (typeof value === 'number') return value;
-      if (value && typeof value === 'object' && typeof value.value === 'number') return value.value;
+      if (value && typeof value === 'object' && 'value' in value && typeof value.value === 'number') return value.value;
       if (typeof value === 'string') return parseInt(value) || 0;
       return 0;
     };
 
     // Helper function to safely extract boolean values
-    const extractBooleanValue = (value: any): boolean => {
+    const extractBooleanValue = (value: unknown): boolean => {
       if (typeof value === 'boolean') return value;
-      if (value && typeof value === 'object' && typeof value.value === 'boolean') return value.value;
+      if (value && typeof value === 'object' && 'value' in value && typeof value.value === 'boolean') return value.value;
       if (typeof value === 'string') return value.toLowerCase() === 'true';
       return false;
     };
 
     // Convert contract field names to app field names with safe extraction
     const convertedProfile: ContractProfile = {
-      displayName: extractStringValue(actualData['display-name'] || actualData.displayName),
+      'display-name': extractStringValue(actualData['display-name'] || actualData.displayName),
       bio: extractStringValue(actualData['bio'] || actualData.bio),
       location: extractStringValue(actualData['location'] || actualData.location),
       website: extractStringValue(actualData['website'] || actualData.website),
-      githubUsername: extractStringValue(actualData['github-username'] || actualData.githubUsername),
-      twitterUsername: extractStringValue(actualData['twitter-username'] || actualData.twitterUsername),
-      linkedinUsername: extractStringValue(actualData['linkedin-username'] || actualData.linkedinUsername),
+      'github-username': extractStringValue(actualData['github-username'] || actualData.githubUsername),
+      'twitter-username': extractStringValue(actualData['twitter-username'] || actualData.twitterUsername),
+      'linkedin-username': extractStringValue(actualData['linkedin-username'] || actualData.linkedinUsername),
       skills: extractArrayValue(actualData['skills'] || actualData.skills),
       specialties: extractArrayValue(actualData['specialties'] || actualData.specialties),
-      createdAt: extractNumberValue(actualData['created-at'] || actualData.createdAt),
-      updatedAt: extractNumberValue(actualData['updated-at'] || actualData.updatedAt),
-      isVerified: extractBooleanValue(actualData['is-verified'] || actualData.isVerified)
+      'created-at': extractNumberValue(actualData['created-at'] || actualData.createdAt),
+      'updated-at': extractNumberValue(actualData['updated-at'] || actualData.updatedAt),
+      'is-verified': extractBooleanValue(actualData['is-verified'] || actualData.isVerified)
     };
 
     console.log('🔍 Final converted profile:', convertedProfile);
@@ -425,10 +567,10 @@ export async function getProfileStatsFromContract(userAddress: string): Promise<
 
     // Convert contract field names to app field names
     const convertedStats: ContractProfileStats = {
-      reputationScore: statsData['reputation-score'] || 0,
-      endorsementsReceived: statsData['endorsements-received'] || 0,
-      projectsCount: statsData['projects-count'] || 0,
-      contributionsCount: statsData['contributions-count'] || 0
+      'reputation-score': statsData['reputation-score'] || 0,
+      'endorsements-received': statsData['endorsements-received'] || 0,
+      'projects-count': statsData['projects-count'] || 0,
+      'contributions-count': statsData['contributions-count'] || 0
     };
 
     return convertedStats;
@@ -519,18 +661,18 @@ export async function createProfileOnContract(profileData: {
     }
   });
 
-  let functionArgs;
+  let functionArgs: ContractFunctionArg[];
   try {
     functionArgs = [
-      stringAsciiCV(profileData.displayName),
-      stringAsciiCV(profileData.bio),
-      stringAsciiCV(profileData.location),
-      stringAsciiCV(profileData.website),
-      stringAsciiCV(profileData.githubUsername),
-      stringAsciiCV(profileData.twitterUsername),
-      stringAsciiCV(profileData.linkedinUsername),
-      listCV(profileData.skills.map(skill => stringAsciiCV(skill))),
-      listCV(profileData.specialties.map(specialty => stringAsciiCV(specialty))),
+      { type: 'string-ascii', value: profileData.displayName },
+      { type: 'string-ascii', value: profileData.bio },
+      { type: 'string-ascii', value: profileData.location },
+      { type: 'string-ascii', value: profileData.website },
+      { type: 'string-ascii', value: profileData.githubUsername },
+      { type: 'string-ascii', value: profileData.twitterUsername },
+      { type: 'string-ascii', value: profileData.linkedinUsername },
+      { type: 'list', value: profileData.skills.map(skill => ({ type: 'string-ascii', value: skill } as ContractFunctionArg)) },
+      { type: 'list', value: profileData.specialties.map(specialty => ({ type: 'string-ascii', value: specialty } as ContractFunctionArg)) },
     ];
 
     console.log('Function args created successfully');
@@ -539,16 +681,23 @@ export async function createProfileOnContract(profileData: {
     throw new Error(`Failed to create contract arguments: ${error}`);
   }
 
-  await callContractWithWallet(
-    'create-profile',
-    functionArgs,
-    (data) => {
-      console.log('Profile creation transaction submitted:', data.txId);
-    },
-    () => {
-      console.log('Profile creation cancelled');
-    }
-  );
+  return new Promise<void>((resolve, reject) => {
+    callContractWithWallet(
+      'create-profile',
+      functionArgs,
+      (data) => {
+        console.log('Profile creation transaction submitted:', data.txId);
+        resolve();
+      },
+      () => {
+        console.log('Profile creation cancelled');
+        reject(new Error('Profile creation was cancelled by user'));
+      }
+    ).catch((error) => {
+      console.error('Profile creation failed:', error);
+      reject(error);
+    });
+  });
 }
 
 /**
@@ -565,28 +714,35 @@ export async function updateProfileOnContract(profileData: {
   skills: string[];
   specialties: string[];
 }): Promise<void> {
-  const functionArgs = [
-    stringAsciiCV(profileData.displayName),
-    stringAsciiCV(profileData.bio),
-    stringAsciiCV(profileData.location),
-    stringAsciiCV(profileData.website),
-    stringAsciiCV(profileData.githubUsername),
-    stringAsciiCV(profileData.twitterUsername),
-    stringAsciiCV(profileData.linkedinUsername),
-    listCV(profileData.skills.map(skill => stringAsciiCV(skill))),
-    listCV(profileData.specialties.map(specialty => stringAsciiCV(specialty))),
+  const functionArgs: ContractFunctionArg[] = [
+    { type: 'string-ascii', value: profileData.displayName },
+    { type: 'string-ascii', value: profileData.bio },
+    { type: 'string-ascii', value: profileData.location },
+    { type: 'string-ascii', value: profileData.website },
+    { type: 'string-ascii', value: profileData.githubUsername },
+    { type: 'string-ascii', value: profileData.twitterUsername },
+    { type: 'string-ascii', value: profileData.linkedinUsername },
+    { type: 'list', value: profileData.skills.map(skill => ({ type: 'string-ascii', value: skill } as ContractFunctionArg)) },
+    { type: 'list', value: profileData.specialties.map(specialty => ({ type: 'string-ascii', value: specialty } as ContractFunctionArg)) },
   ];
 
-  await callContractWithWallet(
-    'update-profile',
-    functionArgs,
-    (data) => {
-      console.log('Profile update transaction submitted:', data.txId);
-    },
-    () => {
-      console.log('Profile update cancelled');
-    }
-  );
+  return new Promise<void>((resolve, reject) => {
+    callContractWithWallet(
+      'update-profile',
+      functionArgs,
+      (data) => {
+        console.log('Profile update transaction submitted:', data.txId);
+        resolve();
+      },
+      () => {
+        console.log('Profile update cancelled');
+        reject(new Error('Profile update was cancelled by user'));
+      }
+    ).catch((error) => {
+      console.error('Profile update failed:', error);
+      reject(error);
+    });
+  });
 }
 
 /**
@@ -609,7 +765,7 @@ export async function deleteProfileOnContract(): Promise<void> {
   }
 
   // No function arguments needed - the contract uses tx-sender
-  const functionArgs: any[] = [];
+  const functionArgs: ContractFunctionArg[] = [];
 
   return new Promise((resolve, reject) => {
     callContractWithWallet(
@@ -642,4 +798,26 @@ export async function deleteProfileOnContract(): Promise<void> {
       }
     });
   });
+}
+
+/**
+ * Test function to verify Xverse wallet integration
+ * This creates a minimal profile to test the transaction flow
+ */
+export async function testXverseIntegration(): Promise<void> {
+  console.log('🧪 Testing Xverse integration with minimal profile...');
+
+  const testProfileData = {
+    displayName: 'Test User',
+    bio: 'Test bio',
+    location: 'Test Location',
+    website: '',
+    githubUsername: '',
+    twitterUsername: '',
+    linkedinUsername: '',
+    skills: [],
+    specialties: [],
+  };
+
+  return createProfileOnContract(testProfileData);
 }

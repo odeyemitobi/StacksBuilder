@@ -3,10 +3,11 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { FiUser, FiGithub, FiGlobe, FiTwitter, FiLinkedin, FiArrowLeft, FiCheck, FiSave } from 'react-icons/fi';
+import { FiGithub, FiGlobe, FiTwitter, FiLinkedin, FiArrowLeft, FiCheck, FiSave } from 'react-icons/fi';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Section } from '@/components/ui/section';
+import { SuccessModal } from '@/components/ui/success-modal';
 import { useStacksAuth, useProfile } from '@/hooks/useStacks';
 import { CreateProfileForm } from '@/types';
 import {
@@ -19,10 +20,8 @@ import {
 } from '@/lib/urlUtils';
 
 import {
-  saveFormDraft,
   loadFormDraft,
   clearFormDraft,
-  hasSavedDraft,
   getDraftTimestamp,
   debouncedSaveFormDraft
 } from '@/lib/formPersistence';
@@ -60,7 +59,7 @@ const SPECIALTY_OPTIONS = [
 function CreateProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isEditMode = searchParams.get('edit') === 'true';
+  const isEditMode = searchParams?.get('edit') === 'true';
   const { isSignedIn, userAddress, isLoading } = useStacksAuth();
   const { profile, isLoading: profileLoading } = useProfile(isEditMode && userAddress ? userAddress : '');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,6 +68,8 @@ function CreateProfileContent() {
 
   const [showDraftRestorePrompt, setShowDraftRestorePrompt] = useState(false);
   const [draftTimestamp, setDraftTimestamp] = useState<Date | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [error, setError] = useState<string>('');
   
   const [formData, setFormData] = useState<CreateProfileForm>({
     displayName: '',
@@ -199,9 +200,9 @@ function CreateProfileContent() {
       linkedinUsername: 50
     };
 
-    const maxLength = fieldLimits[field];
+    const maxLength = fieldLimits[field as string];
     if (maxLength) {
-      const validation = validateFieldLength(processedValue, maxLength, field);
+      const validation = validateFieldLength(processedValue, maxLength, field as string);
 
       setValidationErrors(prev => ({
         ...prev,
@@ -241,32 +242,24 @@ function CreateProfileContent() {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    setError(''); // Clear any previous errors
     try {
       console.log(isEditMode ? 'Updated profile data:' : 'Profile data:', formData);
 
       if (userAddress) {
         // Import contract functions dynamically
         const { createProfileOnContract, updateProfileOnContract } = await import('@/lib/contracts');
-        const { verifyWalletConsistency, forceSetWallet } = await import('@/lib/stacks');
+        const { ensureWalletConsistency } = await import('@/lib/stacks');
 
-        // Check wallet consistency and fix if needed
-        const walletCheck = verifyWalletConsistency();
-        console.log('🔍 Pre-creation wallet check:', walletCheck);
-
-        if (!walletCheck.isConsistent) {
-          // Ask user which wallet they're using
-          const walletChoice = confirm(
-            `Wallet detection issue: ${walletCheck.message}\n\n` +
-            `Are you using Leather wallet? Click OK for Leather, Cancel for Hiro/other.`
-          );
-
-          if (walletChoice) {
-            console.log('🔧 User confirmed Leather wallet, forcing wallet setting');
-            forceSetWallet('leather');
-          } else {
-            console.log('🔧 User indicated non-Leather wallet, using Hiro');
-            forceSetWallet('hiro');
-          }
+        // Ensure wallet consistency - this will throw an error if wallet is not consistent
+        try {
+          const sessionWallet = ensureWalletConsistency();
+          console.log('✅ Wallet consistency verified for profile creation:', sessionWallet);
+        } catch (error) {
+          console.error('❌ Wallet consistency error:', error);
+          setError('Wallet connection issue. Please reconnect your wallet and try again.');
+          setIsSubmitting(false);
+          return;
         }
 
         // Process all social media inputs to ensure they're properly formatted
@@ -302,7 +295,7 @@ function CreateProfileContent() {
         });
 
         if (validationErrors.length > 0) {
-          alert('Please fix the following errors:\n' + validationErrors.join('\n'));
+          setError('Please fix the following errors:\n' + validationErrors.join('\n'));
           return;
         }
 
@@ -340,15 +333,16 @@ function CreateProfileContent() {
         clearFormDraft(userAddress);
       }
 
-      // Show success message and redirect after a delay to allow blockchain confirmation
-      alert(isEditMode ? 'Profile updated successfully!' : 'Profile created successfully! Redirecting to your profile...');
+      // Show success modal and redirect after 3 seconds
+      setShowSuccessModal(true);
 
-      // Wait a bit for the transaction to be processed before redirecting
+      // Wait 3 seconds before redirecting to allow user to see the success message
       setTimeout(() => {
         router.push(`/profile/${userAddress}`);
-      }, 2000);
+      }, 3000);
     } catch (error) {
       console.error(`Failed to ${isEditMode ? 'update' : 'create'} profile:`, error);
+      setError(error instanceof Error ? error.message : `Failed to ${isEditMode ? 'update' : 'create'} profile. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -479,6 +473,19 @@ function CreateProfileContent() {
         </div>
 
         <Card className="p-8">
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{error}</p>
+              <button
+                onClick={() => setError('')}
+                className="mt-2 text-red-600 hover:text-red-800 text-sm underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {/* Step 1: Basic Info */}
           {currentStep === 1 && (
             <motion.div
@@ -719,6 +726,18 @@ function CreateProfileContent() {
           </div>
         </Card>
       </div>
+
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        title={isEditMode ? 'Profile Updated Successfully!' : 'Profile Created Successfully!'}
+        message={isEditMode
+          ? 'Your profile has been updated and saved to the blockchain.'
+          : 'Your developer profile has been created and saved to the blockchain. Redirecting to your profile page...'
+        }
+        onClose={() => setShowSuccessModal(false)}
+        autoCloseDelay={3000}
+      />
     </Section>
   );
 }

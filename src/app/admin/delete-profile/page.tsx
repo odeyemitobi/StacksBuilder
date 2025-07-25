@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Section } from '@/components/ui/section';
 import { useStacksAuth } from '@/hooks/useStacks';
+import { DeveloperProfile } from '@/types';
 
 export default function AdminDeleteProfile() {
   const { isSignedIn, userAddress } = useStacksAuth();
@@ -19,7 +20,7 @@ export default function AdminDeleteProfile() {
   const [isChecking, setIsChecking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [profileExists, setProfileExists] = useState<boolean | null>(null);
-  const [profileData, setProfileData] = useState<any>(null);
+  const [profileData, setProfileData] = useState<DeveloperProfile | null>(null);
   const [message, setMessage] = useState('');
 
   const checkProfile = async () => {

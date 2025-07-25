@@ -149,7 +149,7 @@ export function getDraftTimestamp(userAddress?: string): Date | null {
     }
     
     return new Date(parseInt(savedTimestamp, 10));
-  } catch (error) {
+  } catch {
     return null;
   }
 }

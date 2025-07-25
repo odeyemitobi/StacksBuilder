@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FiArrowRight, FiPlay, FiGithub } from 'react-icons/fi';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Section } from '@/components/ui/section';
 import { AnimatedBadge } from '@/components/ui/animated-badge';
 import { useStacksAuth, useProfileCheck } from '@/hooks/useStacks';
-import { ProfileCookies, MigrationUtils } from '@/lib/cookies';
+// Removed unused imports
 
 // Stacks Icon Component using the PNG image
 const StacksIcon = ({ className }: { className?: string }) => (
@@ -25,7 +25,7 @@ const StacksIcon = ({ className }: { className?: string }) => (
 
 export function Hero() {
   const { isSignedIn, userAddress } = useStacksAuth();
-  const { hasProfile: hasCreatedProfile, isChecking: isCheckingProfile } = useProfileCheck(userAddress);
+  const { hasProfile: hasCreatedProfile } = useProfileCheck(userAddress);
 
   return (
     <Section background="default" padding="xl" className="relative overflow-hidden">

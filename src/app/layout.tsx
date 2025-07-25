@@ -5,6 +5,7 @@ import { Providers } from '@/components/providers';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { WalletDetectionHelper } from '@/components/ui/wallet-detection-helper';
 
 const lato = localFont({
   src: [
@@ -136,6 +137,7 @@ export default function RootLayout({
               {children}
             </main>
             <Footer />
+            <WalletDetectionHelper />
           </ErrorBoundary>
         </Providers>
       </body>

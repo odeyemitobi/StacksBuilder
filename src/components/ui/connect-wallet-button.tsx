@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiCreditCard, FiChevronDown, FiLogOut, FiUser, FiCopy, FiCheck } from 'react-icons/fi';
 import { Button } from './button';
+import { WalletSelector } from './wallet-selector';
 import { useStacksAuth } from '@/hooks/useStacks';
-import { truncateAddress } from '@/lib/stacks';
+import { truncateAddress, type SupportedWallet } from '@/lib/stacks';
 
 interface ConnectWalletButtonProps {
   variant?: 'default' | 'outline' | 'ghost';
@@ -22,6 +23,8 @@ export function ConnectWalletButton({
 }: ConnectWalletButtonProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showWalletSelector, setShowWalletSelector] = useState(false);
+  const [selectedWallet, setSelectedWallet] = useState<SupportedWallet | null>(null);
 
   const {
     isSignedIn,
@@ -39,14 +42,21 @@ export function ConnectWalletButton({
   // Map size to Button component sizes
   const buttonSize = size === 'default' ? 'md' : size;
 
-  const handleConnectWallet = async () => {
+  const handleConnectWallet = () => {
+    setShowWalletSelector(true);
+  };
+
+  const handleWalletSelect = async (walletId: SupportedWallet) => {
+    setSelectedWallet(walletId);
     setIsConnecting(true);
     try {
-      await connect(); // This will use the native Stacks Connect modal
+      await connect(walletId); // Connect to the specific wallet
+      setShowWalletSelector(false);
     } catch (error) {
       console.error('Failed to connect wallet:', error);
     } finally {
       setIsConnecting(false);
+      setSelectedWallet(null);
     }
   };
 
@@ -189,6 +199,15 @@ export function ConnectWalletButton({
           </motion.div>
         </>
       )}
+
+      {/* Wallet Selector Modal */}
+      <WalletSelector
+        isOpen={showWalletSelector}
+        onClose={() => setShowWalletSelector(false)}
+        onWalletSelect={handleWalletSelect}
+        isConnecting={isConnecting}
+        selectedWallet={selectedWallet}
+      />
     </div>
   );
 }

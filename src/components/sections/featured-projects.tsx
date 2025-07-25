@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+// Link import removed as it's not used in this component
 import { FiArrowRight, FiStar, FiGithub, FiExternalLink } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { Section, SectionHeader } from '@/components/ui/section';

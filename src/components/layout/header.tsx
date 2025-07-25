@@ -16,7 +16,6 @@ export function Header() {
   const {
     isSignedIn,
     userAddress,
-    connectedWallet,
     isLoading,
     connect,
     disconnect
