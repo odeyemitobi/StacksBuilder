@@ -1098,13 +1098,13 @@ export const readProfileFromContract = async (userAddress: string): Promise<Deve
       linkedinUsername: profileData['linkedin-username'] || '',
       portfolioProjects: [],
       reputation: {
-        overall: 850, // Default reputation score
-        contractContributions: 12,
-        communityEndorsements: 23,
-        projectCompletions: 8,
-        mentorshipHours: 45,
-        githubContributions: 156,
-        stacksTransactions: 89,
+        overall: 0, // Default reputation score
+        contractContributions: 0,
+        communityEndorsements: 0,
+        projectCompletions: 0,
+        mentorshipHours: 0,
+        githubContributions: 0,
+        stacksTransactions: 0,
         lastUpdated: Math.floor(Date.now() / 1000)
       },
       isVerified: profileData['is-verified'] || false,
@@ -1153,13 +1153,13 @@ export const readProfileFromContract = async (userAddress: string): Promise<Deve
           linkedinUsername: (storedProfileData.linkedinUsername as string) || '',
           portfolioProjects: [],
           reputation: {
-            overall: 850,
-            contractContributions: 12,
-            communityEndorsements: 23,
-            projectCompletions: 8,
-            mentorshipHours: 45,
-            githubContributions: 156,
-            stacksTransactions: 89,
+            overall: 0,
+            contractContributions: 0,
+            communityEndorsements: 0,
+            projectCompletions: 0,
+            mentorshipHours: 0,
+            githubContributions: 0,
+            stacksTransactions: 0,
             lastUpdated: Math.floor(Date.now() / 1000)
           },
           isVerified: false,
