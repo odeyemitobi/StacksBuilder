@@ -263,7 +263,7 @@ export default function ProfilePage() {
 
                 <Button
                   variant="outline"
-                  className="flex items-center space-x-2 cursor-pointer text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                  className="flex items-center space-x-2 cursor-pointer text-red-600 border-red-600 hover:bg-red-50 hover:border-red-300"
                   onClick={() => setShowDeleteConfirm(true)}
                 >
                   <FiTrash2 className="w-4 h-4" />
