@@ -137,11 +137,6 @@ export function Footer() {
             <p className="text-muted-foreground text-sm">
               © {currentYear} StacksBuilder. Built on Bitcoin with Stacks.
             </p>
-            <div className="mt-4 md:mt-0">
-              <p className="text-muted-foreground text-sm">
-                Made with ❤️ for the Bitcoin developer community
-              </p>
-            </div>
           </div>
         </div>
       </div>
