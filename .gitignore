@@ -129,11 +129,11 @@ COOKIE_IMPLEMENTATION.md
 !CONTRIBUTING.md
 !CHANGELOG.md
 
-# Deployment and utility scripts - Keep local but exclude from public
-# (These are useful for development but may contain sensitive deployment info)
+# Deployment scripts - Keep local but exclude from public
+# (These may contain sensitive deployment info)
 deploy-testnet.bat
 deploy-testnet.ps1
-update-contract-address.ps1
+# Note: update-contract-address.ps1 is made public as it's a useful utility
 
 # Additional security exclusions
 *.key
