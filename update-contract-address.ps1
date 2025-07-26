@@ -5,7 +5,7 @@ param(
     [string]$ContractAddress,
     
     [Parameter(Mandatory=$false)]
-    [string]$ContractName = "developer-profiles"
+    [string]$ContractName = "developer-profiles-v2"
 )
 
 Write-Host "========================================" -ForegroundColor Cyan

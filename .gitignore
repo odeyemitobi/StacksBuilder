@@ -97,6 +97,7 @@ jspm_packages/
 
 # Clarinet (CRITICAL - Contains wallet mnemonics and private keys)
 .clarinet/
+stacksbuilder-contracts/.cache/
 # Exclude settings with real mnemonics but keep example files
 **/settings/Devnet.toml
 **/settings/Testnet.toml
