@@ -10,13 +10,14 @@ out/
 build/
 dist/
 
-# Environment variables
+# Environment variables (CRITICAL - Contains sensitive configuration)
 .env
 .env.local
 .env.local.example
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*.local
 
 # IDE and editor files
 .vscode/
@@ -94,14 +95,19 @@ jspm_packages/
 # TernJS port file
 .tern-port
 
-# Clarinet
+# Clarinet (CRITICAL - Contains wallet mnemonics and private keys)
 .clarinet/
-settings/Devnet.toml
-settings/Testnet.toml
-settings/Mainnet.toml
+# Exclude settings with real mnemonics but keep example files
+**/settings/Devnet.toml
+**/settings/Testnet.toml
+**/settings/Mainnet.toml
+# Allow example settings files and documentation
+!**/settings/*.example.toml
+!**/settings/README.md
 
 # TypeScript
 *.tsbuildinfo
+tsconfig.tsbuildinfo
 
 # Testing
 coverage/
@@ -111,7 +117,36 @@ coverage/
 tmp/
 temp/
 
-# Documentation files (except root README.md)
-*.md
+# Documentation files - Keep development docs but exclude from public repo
+project.md
+setup.md
+CLARINET_INSTALLATION.md
+COOKIE_IMPLEMENTATION.md
+# Allow essential documentation
 !README.md
 !*/README.md
+!LICENSE.md
+!CONTRIBUTING.md
+!CHANGELOG.md
+
+# Deployment and utility scripts - Keep local but exclude from public
+# (These are useful for development but may contain sensitive deployment info)
+deploy-testnet.bat
+deploy-testnet.ps1
+update-contract-address.ps1
+
+# Additional security exclusions
+*.key
+*.pem
+*.p12
+*.pfx
+*secret*
+*private*
+*credential*
+*password*
+
+# IDE and editor specific files
+.vscode/settings.json
+.vscode/launch.json
+.idea/workspace.xml
+.idea/tasks.xml
