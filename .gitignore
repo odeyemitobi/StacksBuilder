@@ -130,6 +130,10 @@ COOKIE_IMPLEMENTATION.md
 !CONTRIBUTING.md
 !CHANGELOG.md
 
+# Journey Updates - Private progress tracking for Stacks Ascent
+journey-updates/
+WEEK_*_JOURNEY_UPDATE.md
+
 # Deployment scripts - Keep local but exclude from public
 # (These may contain sensitive deployment info)
 deploy-testnet.bat
