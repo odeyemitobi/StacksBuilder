@@ -64,6 +64,29 @@
 
 ;; Public functions
 
+;; Helper function to validate string input
+(define-private (is-valid-string (input (string-ascii 500)) (min-len uint) (max-len uint))
+  (and 
+    (>= (len input) min-len)
+    (<= (len input) max-len)
+  )
+)
+
+;; Helper function to validate optional string input
+(define-private (is-valid-optional-string (input (string-ascii 500)) (max-len uint))
+  (<= (len input) max-len)
+)
+
+;; Helper function to validate skills list
+(define-private (is-valid-skills-list (skills (list 20 (string-ascii 30))))
+  (<= (len skills) u20)
+)
+
+;; Helper function to validate specialties list
+(define-private (is-valid-specialties-list (specialties (list 10 (string-ascii 50))))
+  (<= (len specialties) u10)
+)
+
 ;; Create a new developer profile
 (define-public (create-profile 
   (display-name (string-ascii 50))
@@ -84,9 +107,20 @@
     ;; Check if profile already exists
     (asserts! (is-none (map-get? profiles caller)) ERR-PROFILE-ALREADY-EXISTS)
     
-    ;; Validate input
-    (asserts! (> (len display-name) u0) ERR-INVALID-INPUT)
-    (asserts! (> (len bio) u0) ERR-INVALID-INPUT)
+    ;; Validate required input
+    (asserts! (is-valid-string display-name u1 u50) ERR-INVALID-INPUT)
+    (asserts! (is-valid-string bio u1 u500) ERR-INVALID-INPUT)
+    
+    ;; Validate optional input
+    (asserts! (is-valid-optional-string location u100) ERR-INVALID-INPUT)
+    (asserts! (is-valid-optional-string website u200) ERR-INVALID-INPUT)
+    (asserts! (is-valid-optional-string github-username u50) ERR-INVALID-INPUT)
+    (asserts! (is-valid-optional-string twitter-username u50) ERR-INVALID-INPUT)
+    (asserts! (is-valid-optional-string linkedin-username u50) ERR-INVALID-INPUT)
+    
+    ;; Validate lists
+    (asserts! (is-valid-skills-list skills) ERR-INVALID-INPUT)
+    (asserts! (is-valid-specialties-list specialties) ERR-INVALID-INPUT)
     
     ;; Create the profile
     (map-set profiles caller {
@@ -136,9 +170,20 @@
       (caller tx-sender)
       (current-profile (unwrap! (map-get? profiles caller) ERR-PROFILE-NOT-FOUND))
     )
-    ;; Validate input
-    (asserts! (> (len display-name) u0) ERR-INVALID-INPUT)
-    (asserts! (> (len bio) u0) ERR-INVALID-INPUT)
+    ;; Validate required input
+    (asserts! (is-valid-string display-name u1 u50) ERR-INVALID-INPUT)
+    (asserts! (is-valid-string bio u1 u500) ERR-INVALID-INPUT)
+    
+    ;; Validate optional input
+    (asserts! (is-valid-optional-string location u100) ERR-INVALID-INPUT)
+    (asserts! (is-valid-optional-string website u200) ERR-INVALID-INPUT)
+    (asserts! (is-valid-optional-string github-username u50) ERR-INVALID-INPUT)
+    (asserts! (is-valid-optional-string twitter-username u50) ERR-INVALID-INPUT)
+    (asserts! (is-valid-optional-string linkedin-username u50) ERR-INVALID-INPUT)
+    
+    ;; Validate lists
+    (asserts! (is-valid-skills-list skills) ERR-INVALID-INPUT)
+    (asserts! (is-valid-specialties-list specialties) ERR-INVALID-INPUT)
     
     ;; Update the profile
     (map-set profiles caller {
@@ -172,6 +217,14 @@
     ;; Check if profile exists
     (asserts! (is-some (map-get? profiles user)) ERR-PROFILE-NOT-FOUND)
     
+    ;; Validate reputation score (should be between 0 and 1000)
+    (asserts! (<= reputation-score u1000) ERR-INVALID-INPUT)
+    
+    ;; Validate other stats (reasonable upper bounds)
+    (asserts! (<= endorsements-received u10000) ERR-INVALID-INPUT)
+    (asserts! (<= projects-count u1000) ERR-INVALID-INPUT)
+    (asserts! (<= contributions-count u100000) ERR-INVALID-INPUT)
+    
     ;; Update stats
     (map-set profile-stats user {
       reputation-score: reputation-score,
@@ -184,12 +237,20 @@
   )
 )
 
-;; Verify a profile (admin function - for now anyone can call it)
+;; Data variable for admin (for now, deployer is admin)
+(define-data-var admin principal tx-sender)
+
+;; Verify a profile (admin function)
 (define-public (verify-profile (user principal))
   (let
     (
       (current-profile (unwrap! (map-get? profiles user) ERR-PROFILE-NOT-FOUND))
     )
+    ;; Only admin can verify profiles
+    (asserts! (is-eq tx-sender (var-get admin)) ERR-NOT-AUTHORIZED)
+    
+    ;; Validate user principal
+    (asserts! (is-standard user) ERR-INVALID-INPUT)
     ;; Update verification status
     (map-set profiles user (merge current-profile { is-verified: true }))
 
